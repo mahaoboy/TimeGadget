@@ -1,0 +1,12 @@
+com\winagile\gadget\BarChart$DataRow.class
+com\winagile\gadget\MyPluginComponentImpl.class
+com\winagile\gadget\rest\ErrorMessagesList.class
+com\winagile\gadget\rest\MyErrorCollection.class
+com\winagile\gadget\BarChart.class
+com\winagile\gadget\rest\MyGroupResourceModel.class
+com\winagile\gadget\rest\MyRestResource.class
+com\winagile\gadget\rest\MyRestResourceModel.class
+com\winagile\gadget\rest\ErrorResourceModel.class
+com\winagile\gadget\MyException.class
+com\winagile\gadget\MyPluginComponent.class
+com\winagile\gadget\BarChart$PieChart.class
