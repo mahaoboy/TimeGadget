@@ -1,13 +1,12 @@
-<?xml version="1.0" encoding="UTF-8" ?><Module><ModulePrefs title="Average Spent Time" height="400" directory_title="Average Spent Time" description="Average Spent Time" author="winagile" author_affiliation="winagile" author_location="beijing" screenshot='#staticResourceUrl("com.winagile.gadget.TimeGadget:demogadget", "screenshot.png")' thumbnail='#staticResourceUrl("com.winagile.gadget.TimeGadget:demogadget", "thumb.png")'><Optional feature="gadget-directory"><Param name="categories">
+<?xml version="1.0" encoding="UTF-8" ?><Module><ModulePrefs title="__MSG_demogadget.name__" height="400" directory_title="__MSG_demogadget.name__" description="__MSG_demogadget.name__" author="winagile" author_affiliation="winagile" author_location="beijing" screenshot='#staticResourceUrl("com.winagile.gadget.TimeGadget:demogadget", "screenshot.png")' thumbnail='#staticResourceUrl("com.winagile.gadget.TimeGadget:demogadget", "thumb.png")'><Optional feature="gadget-directory"><Param name="categories">
 				JIRA
 				Charts
 			</Param></Optional><Require feature="setprefs"/><Require feature="views"/><Optional feature="atlassian.util"/><Optional feature='auth-refresh'/><Require feature="settitle"/><Require feature="dynamic-height"/><Require feature="oauthpopup"/>
 		#oauth
-		#supportedLocales("gadget.common")
-		<Locale><messagebundle><msg name="gadget.winagile.blue.icon">\u4e25\u91cd\u95ee\u9898\u89e3\u51b3\u65f6\u95f4</msg><msg name="gadget.winagile.red.icon">\u4e00\u822c\u95ee\u9898\u89e3\u51b3\u65f6\u95f4</msg><msg name="gadget.winagile.unit.name">\u90e8\u95e8\u5b57\u6bb5</msg><msg name="gadget.winagile.time.name">\u65f6\u95f4\u5b57\u6bb5</msg><msg name="gadget.winagile.issuetype.name">\u95ee\u9898\u7c7b\u578b</msg><msg name="gadget.winagile.prio.name">\u4f18\u5148\u7ea7\u5b57\u6bb5</msg><msg name="gadget.winagile.prio.desc">\u9009\u62e9\u4e25\u91cd\u95ee\u9898\u5bf9\u5e94\u503c\uff0c\u5176\u4ed6\u9ed8\
-					u8ba4\u4e3a\u4e00\u822c\u95ee\u9898
-				</msg><msg name="gadget.winagile.field.error">\u5b57\u6bb5\u9519\u8bef\u8bf7\u91cd\u9009</msg><msg name="gadget.winagile.title">\u5e73\u5747\u89e3\u51b3\u65f6\u95f4\u67f1\u72b6\u56fe
-				</msg></messagebundle></Locale></ModulePrefs><UserPref name="isConfigured" datatype="hidden" default_value="false"/><UserPref name="refresh" datatype="hidden" default_value="false"/><UserPref name="isPopup" datatype="hidden" default_value="false"/><UserPref name="unitId" datatype="hidden"/><UserPref name="timeId" datatype="hidden"/><UserPref name="issuetypeId" datatype="hidden"/><UserPref name="priorityId" datatype="hidden"/><UserPref name="groupedOptions" datatype="hidden"/><Content type="html" view="profile,canvas,home">
+		#supportedLocales("gadget.common,demogadget")
+		<Locale><messagebundle><msg name="gadget.winagile.blue.icon">\u4e25\u91cd\u95ee\u9898\u89e3\u51b3\u65f6\u95f4</msg><msg name="gadget.winagile.red.icon">\u4e00\u822c\u95ee\u9898\u89e3\u51b3\u65f6\u95f4</msg><msg name="gadget.winagile.unit.name">\u90e8\u95e8\u5b57\u6bb5</msg><msg name="gadget.winagile.time.name">\u65f6\u95f4\u5b57\u6bb5</msg><msg name="gadget.winagile.issuetype.name">\u95ee\u9898\u7c7b\u578b</msg><msg name="gadget.winagile.prio.name">\u4e25\u91cd\u95ee\u9898\u533a\u5206\u5b57\u6bb5</msg><msg name="gadget.winagile.prio.desc">\u9009\u62e9\u4e25\u91cd\u95ee\u9898\u5bf9\u5e94\u503c\uff0c\u5176\u4ed6\u9ed8\u8ba4\u4e3a\u4e00\u822c\u95ee\u9898
+				</msg><msg name="gadget.winagile.field.error">Error Happened, Choose Another Field</msg><msg name="gadget.winagile.title">\u95ee\u9898\u89e3\u51b3\u65f6\u95f4\u67f1\u72b6\u56fe
+				</msg></messagebundle></Locale></ModulePrefs><UserPref name="isConfigured" datatype="hidden" default_value="false"/><UserPref name="refresh" datatype="hidden" default_value="false"/><UserPref name="isPopup" datatype="hidden" default_value="false"/><UserPref name="unitId" datatype="hidden"/><UserPref name="timeId" datatype="hidden"/><UserPref name="issuetypeId" datatype="hidden"/><UserPref name="priorityId" datatype="hidden"/><Content type="html" view="profile,canvas,home">
         <![CDATA[
 
         #requireContext("com.atlassian.jira.gadgets:autocomplete")
@@ -24,7 +23,7 @@
                             var gadget = this;
                             
                             return  {
-                            	action: "/rest/myrestresource/1.0/message/validate",
+                            	action: "/rest/winagilechartrest/1.0/timechartmessage/validate",
                                 theme : function () {
                                     if (gadgets.window.getViewportDimensions().width < 450){
                                         return "gdt top-label";
@@ -65,58 +64,22 @@
                                         selected: this.getPref("priorityId"),
                                         options: args.priolist
                                     },
-                                    {
-								        userpref: "groupedOptions",
-								        label: "xxx",
-								        type: "select",
-								        options:[
-								            {
-								                group: {
-								                    label: "First Option Group",
-								                    options: [
-								                        {
-								                            label: "First Group -> First Option",
-								                            value: "group-1_opt-1",
-								                        },
-								                        {
-								                            label: "First Group -> Second Option",
-								                            value: "group-1_opt-2",
-								                        }
-								                    ]
-								                }
-								            },
-								            { 
-								                label:"No Group Options",
-								                value:"group-N/A_opt-1"
-								            },
-								            {
-								                group: {
-								                    label: "Second Option Group",
-								                    options: [
-								                        {
-								                            label: "Second Group -> First Option",
-								                            value: "group-2_opt-1",
-								                        }
-								                    ]
-								                }
-								            }
-								        ]
-								    },
+                                    
                                     AJS.gadget.fields.nowConfigured()
                                 ]
                             };
                         },
                         args: [{
                             key: "cflist",
-                            ajaxOptions:  "/rest/myrestresource/1.0/message/customfieldlist"
+                            ajaxOptions:  "/rest/winagilechartrest/1.0/timechartmessage/customfieldlist"
                         },
                         {
                             key: "itlist",
-                            ajaxOptions:  "/rest/myrestresource/1.0/message/issuetypelist"
+                            ajaxOptions:  "/rest/winagilechartrest/1.0/timechartmessage/issuetypelist"
                         },
                         {
                             key: "priolist",
-                            ajaxOptions:  "/rest/myrestresource/1.0/message/priolist"
+                            ajaxOptions:  "/rest/winagilechartrest/1.0/timechartmessage/priolist"
                         }]
                     },
                     view: {
@@ -191,46 +154,7 @@
                                 );
                             }();
                             if (gadgets.views.getCurrentView().getName() === "canvas") {
-                                var dataTable = AJS.gadgets.templater.Table ({
-                                    descriptor: function (args) {
-                                        return {
-                                            cols: [
-                                                {header: args.statType, preSorted: true},
-                                                {header: gadget.getMsg("gadget.piechart.issues"), sort: "asc"},
-                                                {header: "%"}
-                                            ],
-                                            data: function () {
-                                                var rows = [];
-                                                if (args.chartData) {
-                                                    AJS.$(args.chartData).each(function (i) {
-                                                        rows.push([
-                                                            {value: i, label: gadgets.util.escape(this.key)},
-                                                            {value: gadgets.util.escape(this.value), label: gadgets.util.escape(this.value) },
-                                                            {value: this.pecentage, label: this.pecentage}
-                                                        ]);
-                                                    });
-                                                }
-                                                return rows;
-                                            }()
-                                        };
-                                    },
-                                    sortable: true,
-                                    args: [{key: "chartData", data: args.chart.data}, {key: "statType", data: args.chart.statType}]
-                                });
-
-                                var getDataTable = function () {
-                                    return AJS.$("table.aui", gadget.getView());
-                                };
-
-                                var createCanvasDataTable = function () {
-                                    dataTable.addCallback(function (fragment) {
-                                        gadget.getView().append(fragment);
-                                        gadget.resize();
-                                    });
-                                    dataTable.build();
-                                };
-                                // finally after the image has loaded we create the data table
-                                getChartImg().load(createCanvasDataTable);
+                                getChartImg().load();
                             }
                         },
                         args: [{
@@ -249,12 +173,14 @@
                                 
                                 
                                     return {
-                                        url: "/rest/myrestresource/1.0/message/generate",
+                                        url: "/rest/winagilechartrest/1.0/timechartmessage/generate",
                                         data:  {
                                             widthName: Math.round(width * 0.8),
                                             heightName: Math.round(height * 0.8),
                                             unitId: gadgets.util.unescapeString(this.getPref("unitId")),
-                                            timeId: gadgets.util.unescapeString(this.getPref("timeId"))
+                                            timeId: gadgets.util.unescapeString(this.getPref("timeId")),
+                                            issuetypeId: gadgets.util.unescapeString(this.getPref("issuetypeId")),
+                                            priorityId: gadgets.util.unescapeString(this.getPref("priorityId"))
                                         }
                                     };
                             }

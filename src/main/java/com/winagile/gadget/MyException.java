@@ -1,11 +1,15 @@
 package com.winagile.gadget;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 public class MyException extends Throwable {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+	private static final Logger log = LogManager.getLogger(MyException.class);
 	private String exType;
 
 	public MyException() {
@@ -30,6 +34,8 @@ public class MyException extends Throwable {
 
 	public MyException(Throwable paramThrowable) {
 		super(paramThrowable);
+
+		log.error(StaticParams.getPrintStack(paramThrowable));
 	}
 
 	protected MyException(String paramString, Throwable paramThrowable,

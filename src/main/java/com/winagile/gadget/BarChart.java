@@ -13,9 +13,10 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlType;
 
 import org.apache.axis.encoding.Base64;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.StandardChartTheme;
@@ -34,8 +35,10 @@ import com.atlassian.jira.bc.issue.search.SearchService;
 import com.atlassian.jira.charts.Chart;
 import com.atlassian.jira.charts.jfreechart.ChartHelper;
 import com.atlassian.jira.component.ComponentAccessor;
+import com.atlassian.jira.config.IssueTypeManager;
 import com.atlassian.jira.issue.CustomFieldManager;
 import com.atlassian.jira.issue.Issue;
+import com.atlassian.jira.issue.customfields.manager.OptionsManager;
 import com.atlassian.jira.issue.customfields.option.Option;
 import com.atlassian.jira.issue.customfields.option.Options;
 import com.atlassian.jira.issue.fields.CustomField;
@@ -51,9 +54,30 @@ import com.atlassian.query.Query;
  */
 public class BarChart {
 
-	public PieChart generateChart(int width, int height, Long Aid, Long Bid)
-			throws MyException {
-		final CategoryDataset categoryDataset = createDataset(Aid, Bid);
+	final private IssueTypeManager itM;
+	final private CustomFieldManager customFM;
+	final private SearchService ss;
+	final private OptionsManager opM;
+	private CustomField Acf;
+	private CustomField Bcf;
+	private String issueType;
+	private User auser;
+
+	private static final Logger log = LogManager.getLogger(BarChart.class);
+
+	BarChart(CustomFieldManager customFM, IssueTypeManager itM,
+			SearchService ss, OptionsManager opM) {
+		this.customFM = customFM;
+		this.itM = itM;
+		this.ss = ss;
+		this.opM = opM;
+	}
+
+	public PieChart generateChart(int width, int height, Long Aid, Long Bid,
+			String issueType, String prio) throws MyException {
+		this.issueType = issueType;
+
+		final CategoryDataset categoryDataset = createDataset(Aid, Bid, prio);
 		JFreeChart jchart = createChart(categoryDataset);
 		ChartHelper helper = new ChartHelper(jchart);
 		Map<String, Object> params = new HashMap<String, Object>();
@@ -62,6 +86,7 @@ public class BarChart {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			log.error(e.getMessage());
 		}
 		params.put("chart", helper.getLocation());
 		params.put("chartDataset", categoryDataset);
@@ -83,21 +108,17 @@ public class BarChart {
 		String imageMap = chart.getImageMap();
 		String imageMapName = chart.getImageMapName();
 
-		DataRow[] data = null;
-		data = generateDataSet(categoryDataset);
-
 		String displayName = "xx";
 
 		PieChart pieChart = new PieChart(location, title, filterUrl,
-				displayName, imageMap, imageMapName, data, chartWidth,
-				chartHeight, chart.getBase64Image());
+				displayName, imageMap, imageMapName, chartWidth, chartHeight,
+				chart.getBase64Image());
 
 		return pieChart;
 	}
 
 	private String imgToB64(BufferedImage paramBufferedImage) {
 		// TODO Auto-generated method stub
-		System.out.println("param passed : " + paramBufferedImage);
 		BufferedImage bi = paramBufferedImage;
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try {
@@ -105,109 +126,124 @@ public class BarChart {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			log.error(StaticParams.getPrintStack(e));
 		}
 		byte[] bytes = out.toByteArray();
 		String src = "data:image/png;base64," + Base64.encode(bytes);
 		return src;
 	}
 
-	private DataRow[] generateDataSet(CategoryDataset dataset) {
-		DataRow[] data = new DataRow[dataset.getColumnCount()];
-
-		for (int col = 0; col < dataset.getColumnCount(); ++col) {
-			Comparable key = dataset.getColumnKey(col);
-			int val = dataset.getValue(0, col).intValue();
-			int percentage = dataset.getValue(1, col).intValue();
-			data[col] = new DataRow(key, val, percentage);
-		}
-
-		return data;
-	}
-
-	private CategoryDataset createDataset(Long Aid, Long Bid)
+	private CategoryDataset createDataset(Long Aid, Long Bid, String prio)
 			throws MyException {
-
-		// row keys...
 		final String series1 = "First";
-		final String series2 = "S";
-		User auser = ApplicationUsers.toDirectoryUser(ComponentAccessor
-				.getJiraAuthenticationContext().getUser());
+		final String series2 = "Second";
 		final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
-		final CustomFieldManager cfm = ComponentAccessor
-				.getCustomFieldManager();
-		final CustomField Acf = cfm.getCustomFieldObject(Aid);
-		final CustomField Bcf = cfm.getCustomFieldObject(Bid);
+		Acf = customFM.getCustomFieldObject(Aid);
+		Bcf = customFM.getCustomFieldObject(Bid);
+		final String name = prio.split(StaticParams.delimeterV)[0];
+		final String value = prio.split(StaticParams.delimeterV)[1];
 
-		final SearchService searchService = ComponentAccessor
-				.getComponent(SearchService.class);
 		Options options;
 		try {
-			options = ComponentAccessor.getOptionsManager().getOptions(
-					Bcf.getConfigurationSchemes().listIterator().next()
-							.getOneAndOnlyConfig());
+			options = opM.getOptions(Bcf.getConfigurationSchemes()
+					.listIterator().next().getOneAndOnlyConfig());
 			if (options.isEmpty()) {
 				throw new Exception();
 			}
 		} catch (Exception e3) {
 			e3.printStackTrace();
+			log.error(StaticParams.getPrintStack(e3));
 			throw new MyException("unit", "unit field error");
 		}
 
 		for (Option op : options.getRootOptions()) {
-			double totalTime = 0;
-			int totalNum = 0;
-			String jqlQuery;
-			SearchService.ParseResult parseResult;
-			try {
-				jqlQuery = "\"" + Bcf.getFieldName() + "\" = \""
-						+ op.getValue() + "\"";
-				System.out
-						.println("com.winagile.demo.jira.reports Info: JQL : "
-								+ jqlQuery);
-				parseResult = searchService.parseQuery(auser, jqlQuery);
-			} catch (Exception e2) {
-				e2.printStackTrace();
-				throw new MyException("unit", "unit field error");
-			}
-
-			if (parseResult.isValid()) {
-				Query query = parseResult.getQuery();
-				SearchResults results;
-				try {
-					results = searchService.search(auser, query,
-							PagerFilter.getUnlimitedFilter());
-					List<Issue> issues = results.getIssues();
-					for (Issue issue : issues) {
-						Object Avalue = Acf.getValue(issue);
-						if (Avalue != null) {
-							totalTime += (Double) Avalue;
-							totalNum++;
-						} else {
-							System.out
-									.println("com.winagile.demo.jira.reports ERROR: "
-											+ Acf.getName() + " : " + Avalue);
-						}
-
-					}
-				} catch (SearchException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-					throw new MyException("unit", "Search Error");
-				} catch (Exception e2) {
-					e2.printStackTrace();
-					throw new MyException("time", "time field error");
-				}
-
-				dataset.addValue(totalTime / totalNum, series1, op.getValue());
-				dataset.addValue(totalTime / totalNum, series2, op.getValue());
-			} else {
-				System.out
-						.println("com.winagile.demo.jira.reports ERROR: JQL is not valid");
-			}
+			getDataSet(dataset, op, series1,
+					getPrioString(name, value, StaticParams.equalD));
+			getDataSet(dataset, op, series2,
+					getPrioString(name, value, StaticParams.unequalD));
 		}
 		return dataset;
 
+	}
+
+	private String getPrioString(String name, String value, String de) {
+		String prioField;
+		if (name.equals(StaticParams.priorityValue)) {
+			prioField = name + de + value;
+		} else {
+			prioField = "\""
+					+ customFM.getCustomFieldObject(name).getFieldName() + "\""
+					+ de + "\""
+					+ opM.findByOptionId(Long.parseLong(value)).getValue()
+					+ "\"";
+		}
+		return prioField;
+	}
+
+	private void getDataSet(DefaultCategoryDataset dataset, Option op,
+			String series, String prioField) throws MyException {
+		auser = ApplicationUsers.toDirectoryUser(ComponentAccessor
+				.getJiraAuthenticationContext().getUser());
+
+		double totalTime = 0;
+		int totalNum = 0;
+		String jqlQuery;
+		SearchService.ParseResult parseResult;
+		try {
+
+			jqlQuery = "\"" + Bcf.getFieldName() + "\" = \"" + op.getValue()
+					+ "\" and issuetype = "
+					+ itM.getIssueType(issueType).getName() + " and "
+					+ prioField;
+			final String logInfo = "com.winagile.demo.jira.reports Info: JQL : "
+					+ jqlQuery;
+			System.out.println(logInfo);
+			log.error(logInfo);
+			parseResult = ss.parseQuery(auser, jqlQuery);
+		} catch (Exception e2) {
+			e2.printStackTrace();
+			log.error(StaticParams.getPrintStack(e2));
+			throw new MyException("unit", "unit field error");
+		}
+
+		if (parseResult.isValid()) {
+			Query query = parseResult.getQuery();
+			SearchResults results;
+			try {
+				results = ss.search(auser, query,
+						PagerFilter.getUnlimitedFilter());
+				List<Issue> issues = results.getIssues();
+				for (Issue issue : issues) {
+					Object Avalue = Acf.getValue(issue);
+					if (Avalue != null) {
+						totalTime += (Double) Avalue;
+						totalNum++;
+					} else {
+						System.out
+								.println("com.winagile.demo.jira.reports ERROR: "
+										+ Acf.getName() + " : " + Avalue);
+					}
+
+				}
+			} catch (SearchException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+
+				log.error(StaticParams.getPrintStack(e1));
+				throw new MyException("unit", "Search Error");
+			} catch (Exception e2) {
+				e2.printStackTrace();
+
+				log.error(StaticParams.getPrintStack(e2));
+				throw new MyException("time", "time field error");
+			}
+
+			dataset.addValue(totalTime / totalNum, series, op.getValue());
+		} else {
+			System.out
+					.println("com.winagile.demo.jira.reports ERROR: JQL is not valid");
+		}
 	}
 
 	private JFreeChart createChart(final CategoryDataset dataset) {
@@ -247,8 +283,9 @@ public class BarChart {
 		// set the range axis to display integers only...
 		final NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
 		rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
-		//rangeAxis.setTickLabelFont(new Font("Times New Roman", Font.PLAIN, 12));
-		//rangeAxis.setLabelFont(new Font("Times New Roman", Font.PLAIN, 12));
+		// rangeAxis.setTickLabelFont(new Font("Times New Roman", Font.PLAIN,
+		// 12));
+		// rangeAxis.setLabelFont(new Font("Times New Roman", Font.PLAIN, 12));
 		// disable bar outlines...
 		final BarRenderer renderer = (BarRenderer) plot.getRenderer();
 		renderer.setDrawBarOutline(false);
@@ -270,8 +307,9 @@ public class BarChart {
 		domainAxis.setCategoryLabelPositions(CategoryLabelPositions
 				.createUpRotationLabelPositions(Math.PI / 6.0));
 
-		//domainAxis.setTickLabelFont(new Font("Times New Roman", Font.PLAIN, 12));
-		//domainAxis.setLabelFont(new Font("Times New Roman", Font.PLAIN, 12));
+		// domainAxis.setTickLabelFont(new Font("Times New Roman", Font.PLAIN,
+		// 12));
+		// domainAxis.setLabelFont(new Font("Times New Roman", Font.PLAIN, 12));
 		// OPTIONAL CUSTOMISATION COMPLETED.
 
 		return chart;
@@ -303,9 +341,6 @@ public class BarChart {
 		private String imageMapName;
 
 		@XmlElement
-		private BarChart.DataRow[] data;
-
-		@XmlElement
 		private int height;
 
 		@XmlElement
@@ -319,54 +354,16 @@ public class BarChart {
 
 		PieChart(String location, String filterTitle, String filterUrl,
 				String statType, String imageMap, String imageMapName,
-				BarChart.DataRow[] data, int width, int height,
-				String base64Image) {
+				int width, int height, String base64Image) {
 			this.location = location;
 			this.filterTitle = filterTitle;
 			this.filterUrl = filterUrl;
 			this.statType = statType;
 			this.imageMap = imageMap;
 			this.imageMapName = imageMapName;
-			this.data = data;
 			this.width = width;
 			this.height = height;
 			this.base64Image = base64Image;
-		}
-	}
-
-	@XmlRootElement
-	@XmlType(namespace = "com.winagile.gadget.BarChart")
-	public static class DataRow {
-		private Comparable key;
-
-		@XmlElement
-		private int value;
-
-		@XmlElement
-		private int pecentage;
-
-		@XmlElement(name = "key")
-		private String keyString;
-
-		public DataRow() {
-		}
-
-		DataRow(Comparable key, int value, int pecentage) {
-			this.key = key;
-			this.value = value;
-			this.pecentage = pecentage;
-			this.keyString = key.toString();
-		}
-
-		public Comparable getRawKey() {
-			return this.key;
-		}
-
-		public int hashCode() {
-			int result = (this.key != null) ? this.key.hashCode() : 0;
-			result = 31 * result + this.value;
-			result = 31 * result + this.pecentage;
-			return result;
 		}
 	}
 

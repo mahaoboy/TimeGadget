@@ -10,6 +10,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import com.atlassian.jira.config.IssueTypeManager;
 import com.atlassian.jira.issue.CustomFieldManager;
 import com.atlassian.jira.issue.customfields.manager.OptionsManager;
@@ -22,44 +25,31 @@ import com.atlassian.plugins.rest.common.security.AnonymousAllowed;
 import com.atlassian.sal.api.message.I18nResolver;
 import com.winagile.gadget.BarChart;
 import com.winagile.gadget.MyException;
+import com.winagile.gadget.StaticParams;
 
 /**
  * A resource of message.
  */
-@Path("/message")
+@Path("/timechartmessage")
 @AnonymousAllowed
 @Produces({ "application/json" })
 public class MyRestResource {
 
-	final private static int REPORT_IMAGE_WIDTH = 600;
-	final private static int REPORT_IMAGE_HEIGHT = 600;
 	final private CustomFieldManager customFM;
 	final private IssueTypeManager itM;
 	final private I18nResolver i18n;
 	final private OptionsManager opM;
-
-	final private static String selectKey = "com.atlassian.jira.plugin.system.customfieldtypes:select";
-	final private static String priorityValue = "priority";
-	final private static String priorityName = "gadget.winagle.config.prio";
-	final private static String delimeter = " -> ";
-	final private static String delimeterV = ":";
-	final private static String priorityitemHE = "Highest";
-	final private static String priorityNameHE = "gadget.winagle.config.prioHE";
-	final private static String priorityitemH = "High";
-	final private static String priorityNameH = "gadget.winagle.config.prioH";
-	final private static String priorityitemM = "Medium";
-	final private static String priorityNameM = "gadget.winagle.config.prioM";
-	final private static String priorityitemL = "Low";
-	final private static String priorityNameL = "gadget.winagle.config.prioL";
-	final private static String priorityitemLE = "Lowest";
-	final private static String priorityNameLE = "gadget.winagle.config.prioLE";
+	final private BarChart barchart;
+	private static final Logger log = LogManager
+			.getLogger(MyRestResource.class);
 
 	MyRestResource(CustomFieldManager customFM, IssueTypeManager itM,
-			I18nResolver i18n, OptionsManager opM) {
+			I18nResolver i18n, OptionsManager opM, BarChart barchart) {
 		this.customFM = customFM;
 		this.itM = itM;
 		this.i18n = i18n;
 		this.opM = opM;
+		this.barchart = barchart;
 	}
 
 	@GET
@@ -68,18 +58,25 @@ public class MyRestResource {
 	public Response getMessage(@QueryParam("widthName") String width,
 			@QueryParam("heightName") String height,
 			@QueryParam("unitId") String unitId,
-			@QueryParam("timeId") String timeId) {
-		System.out.println("com.winagile.gadget.rest : width:" + width
+			@QueryParam("timeId") String timeId,
+			@QueryParam("issuetypeId") String issuetypeId,
+			@QueryParam("priorityId") String priorityId) {
+
+		String Loginfo = "com.winagile.gadget.rest Generate: width:" + width
 				+ ",height:" + height + ",unitId:" + unitId + ",timeId:"
-				+ timeId);
-		if (width != null && height != null && unitId != null && timeId != null) {
+				+ timeId + ",issuetypeId:" + issuetypeId + ",priorityId:"
+				+ priorityId;
+		System.out.println(Loginfo);
+
+		log.error(Loginfo);
+		if (width != null && height != null && unitId != null && timeId != null
+				&& issuetypeId != null && priorityId != null) {
 			try {
-				return Response
-						.ok(new BarChart().generateChart(
-								Integer.parseInt(width),
+				return Response.ok(
+						barchart.generateChart(Integer.parseInt(width),
 								Integer.parseInt(height),
-								Long.parseLong(timeId), Long.parseLong(unitId)))
-						.build();
+								Long.parseLong(timeId), Long.parseLong(unitId),
+								issuetypeId, priorityId)).build();
 			} catch (MyException e) {
 				return Response.status(400)
 						.entity(getErrorCollection(new MyException(e))).build();
@@ -96,36 +93,47 @@ public class MyRestResource {
 	@GET
 	@Path("validate")
 	public Response validatePieChart(@QueryParam("unitId") String unitId,
-			@QueryParam("timeId") String timeId) {
-		try {
-			new BarChart().generateChart(REPORT_IMAGE_WIDTH,
-					REPORT_IMAGE_HEIGHT, Long.parseLong(timeId),
-					Long.parseLong(unitId));
-			return Response.ok(new String("No input validation errors found."))
+			@QueryParam("timeId") String timeId,
+			@QueryParam("issuetypeId") String issuetypeId,
+			@QueryParam("priorityId") String priorityId) {
+		String Loginfo = "com.winagile.gadget.rest Validate: unitId:" + unitId
+				+ ",timeId:" + timeId + ",issuetypeId:" + issuetypeId
+				+ ",priorityId:" + priorityId;
+		System.out.println(Loginfo);
+
+		log.error(Loginfo);
+		if (unitId != null && timeId != null && issuetypeId != null
+				&& priorityId != null) {
+			try {
+				barchart.generateChart(StaticParams.REPORT_IMAGE_WIDTH,
+						StaticParams.REPORT_IMAGE_HEIGHT,
+						Long.parseLong(timeId), Long.parseLong(unitId),
+						issuetypeId, priorityId);
+				return Response.ok(
+						new String("No input validation errors found."))
+						.build();
+			} catch (MyException e) {
+				return Response.status(400).entity(getErrorCollection(e))
+						.build();
+			} catch (Exception e) {
+				return Response.status(400)
+						.entity(getErrorCollection(new MyException(e))).build();
+			}
+		} else {
+			return Response
+					.status(400)
+					.entity(getErrorCollection(new MyException("Field is null")))
 					.build();
-		} catch (MyException e) {
-			return Response.status(400).entity(getErrorCollection(e)).build();
-		} catch (Exception e) {
-			return Response.status(400)
-					.entity(getErrorCollection(new MyException(e))).build();
 		}
 
 	}
 
 	private ErrorCollection getErrorCollection(MyException e) {
-		e.printStackTrace();
-		SimpleErrorCollection sec = new SimpleErrorCollection();
 		if (e.getExType() != null && e.getExType().equals("time")) {
-			sec.addError("field", "timeId");
+			return StaticParams.getErrorRep(e, log, "timeId");
 		} else {
-			sec.addError("field", "unitId");
+			return StaticParams.getErrorRep(e, log, "unitId");
 		}
-		sec.addError("error", "gadget.winagile.field.error");
-		ErrorCollection ec = new ErrorCollection();
-		ec.addErrorMessage("gadget.winagile.field.error");
-		ec.addErrorCollection(sec);
-
-		return ec;
 	}
 
 	@GET
@@ -144,7 +152,8 @@ public class MyRestResource {
 	public Response getIssueTypeList() {
 		List<MyRestResourceModel> resList = new ArrayList<MyRestResourceModel>();
 		for (IssueType it : itM.getIssueTypes()) {
-			resList.add(new MyRestResourceModel(it.getId(), it.getName()));
+			resList.add(new MyRestResourceModel(it.getId(), it
+					.getNameTranslation()));
 		}
 		return Response.ok(resList).build();
 	}
@@ -152,35 +161,55 @@ public class MyRestResource {
 	@GET
 	@Path("priolist")
 	public Response getPrioList() {
+		List<MyGroupResourceModel> groupList = new ArrayList<MyGroupResourceModel>();
+
 		List<MyRestResourceModel> resList = new ArrayList<MyRestResourceModel>();
-		resList.add(new MyRestResourceModel(priorityValue + delimeterV
-				+ priorityitemHE, i18n.getText(priorityName) + delimeter
-				+ i18n.getText(priorityNameHE)));
-		resList.add(new MyRestResourceModel(priorityValue + delimeterV
-				+ priorityitemH, i18n.getText(priorityName) + delimeter
-				+ i18n.getText(priorityNameH)));
-		resList.add(new MyRestResourceModel(priorityValue + delimeterV
-				+ priorityitemM, i18n.getText(priorityName) + delimeter
-				+ i18n.getText(priorityNameM)));
-		resList.add(new MyRestResourceModel(priorityValue + delimeterV
-				+ priorityitemL, i18n.getText(priorityName) + delimeter
-				+ i18n.getText(priorityNameL)));
-		resList.add(new MyRestResourceModel(priorityValue + delimeterV
-				+ priorityitemLE, i18n.getText(priorityName) + delimeter
-				+ i18n.getText(priorityNameLE)));
+		resList.add(new MyRestResourceModel(StaticParams.priorityValue
+				+ StaticParams.delimeterV + StaticParams.priorityitemHE, i18n
+				.getText(StaticParams.priorityName)
+				+ StaticParams.delimeter
+				+ i18n.getText(StaticParams.priorityNameHE)));
+		resList.add(new MyRestResourceModel(StaticParams.priorityValue
+				+ StaticParams.delimeterV + StaticParams.priorityitemH, i18n
+				.getText(StaticParams.priorityName)
+				+ StaticParams.delimeter
+				+ i18n.getText(StaticParams.priorityNameH)));
+		resList.add(new MyRestResourceModel(StaticParams.priorityValue
+				+ StaticParams.delimeterV + StaticParams.priorityitemM, i18n
+				.getText(StaticParams.priorityName)
+				+ StaticParams.delimeter
+				+ i18n.getText(StaticParams.priorityNameM)));
+		resList.add(new MyRestResourceModel(StaticParams.priorityValue
+				+ StaticParams.delimeterV + StaticParams.priorityitemL, i18n
+				.getText(StaticParams.priorityName)
+				+ StaticParams.delimeter
+				+ i18n.getText(StaticParams.priorityNameL)));
+		resList.add(new MyRestResourceModel(StaticParams.priorityValue
+				+ StaticParams.delimeterV + StaticParams.priorityitemLE, i18n
+				.getText(StaticParams.priorityName)
+				+ StaticParams.delimeter
+				+ i18n.getText(StaticParams.priorityNameLE)));
+
+		groupList.add(new MyGroupResourceModel(new MyGroupMiddleResourceModel(
+				resList, i18n.getText(StaticParams.priorityName))));
+
 		for (CustomField cf : customFM.getCustomFieldObjects()) {
-			if (cf.getCustomFieldType().getKey().equals(selectKey)) {
+			if (cf.getCustomFieldType().getKey().equals(StaticParams.selectKey)) {
+				resList = new ArrayList<MyRestResourceModel>();
 				for (Option cfo : opM.getOptions(cf.getConfigurationSchemes()
 						.listIterator().next().getOneAndOnlyConfig())) {
 					resList.add(new MyRestResourceModel(cf.getIdAsLong()
-							.toString() + delimeterV + cfo.getOptionId(), cf
-							.getName() + delimeter + cfo.getValue()));
+							.toString()
+							+ StaticParams.delimeterV
+							+ cfo.getOptionId(), cf.getName()
+							+ StaticParams.delimeter + cfo.getValue()));
 				}
-
+				groupList.add(new MyGroupResourceModel(
+						new MyGroupMiddleResourceModel(resList, cf.getName())));
 			}
 		}
 
-		return Response.ok(resList).build();
+		return Response.ok(groupList).build();
 
 	}
 }

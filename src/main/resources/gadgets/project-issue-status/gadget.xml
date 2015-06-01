@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Module>
+	<ModulePrefs title="__MSG_project-issue-status.name__"
+		height="400" directory_title="__MSG_project-issue-status.name__"
+		description="__MSG_project-issue-status.name__" author="winagile"
+		author_affiliation="winagile" author_location="beijing"
+		screenshot='#staticResourceUrl("com.winagile.gadget.TimeGadget:demogadget", "screenshot.png")'
+		thumbnail='#staticResourceUrl("com.winagile.gadget.TimeGadget:demogadget", "thumb.png")'>
+		<Optional feature="gadget-directory">
+			<Param name="categories">
+				JIRA
+				Charts
+			</Param>
+		</Optional>
+		<Require feature="setprefs" />
+		<Require feature="views" />
+		<Optional feature="atlassian.util" />
+		<Optional feature='auth-refresh' />
+		<Require feature="settitle" />
+		<Require feature="dynamic-height" />
+		<Require feature="oauthpopup" />
+		#oauth
+		#supportedLocales("gadget.common,demogadget,project-issue-status")
+		<Locale>
+			<messagebundle>
+				<msg name="gadget.winagile.blue.icon">\u5df2\u89e3\u51b3\u95ee\u9898</msg>
+				<msg name="gadget.winagile.red.icon">\u672a\u89e3\u51b3\u95ee\u9898</msg>
+				<msg name="gadget.winagile.unit.name">\u90e8\u95e8\u5b57\u6bb5</msg>
+				<msg name="gadget.winagile.status.name">\u5df2\u89e3\u51b3\u72b6\u6001</msg>
+				<msg name="gadget.winagile.issuetype.name">\u95ee\u9898\u7c7b\u578b</msg>
+				<msg name="gadget.winagile.prio.name">\u4e25\u91cd\u95ee\u9898\u533a\u5206\u5b57\u6bb5</msg>
+				<msg name="gadget.winagile.prio.desc">\u9009\u62e9\u4e25\u91cd\u95ee\u9898\u5bf9\u5e94\u503c\uff0c\u5176\u4ed6\u9ed8\u8ba4\u4e3a\u4e00\u822c\u95ee\u9898
+				</msg>
+				<msg name="gadget.winagile.field.error">Error Happened, Choose Another Field</msg>
+				<msg name="gadget.winagile.title">\u95ee\u9898\u89e3\u51b3\u65f6\u95f4\u67f1\u72b6\u56fe
+				</msg>
+			</messagebundle>
+		</Locale>
+
+	</ModulePrefs>
+	<UserPref name="isConfigured" datatype="hidden" default_value="false" />
+	<UserPref name="refresh" datatype="hidden" default_value="false" />
+	<UserPref name="isPopup" datatype="hidden" default_value="false" />
+	<UserPref name="statusId" datatype="hidden" />
+	<UserPref name="issuetypeId" datatype="hidden" />
+	<Content type="html" view="profile,canvas,home">
+        <![CDATA[
+
+        #requireContext("com.atlassian.jira.gadgets:autocomplete")
+        #includeResources()
+
+        <script type="text/javascript">
+            (function () {
+
+                var gadget = AJS.Gadget({
+                    baseUrl: "__ATLASSIAN_BASE_URL__",
+                    useOauth: "/rest/gadget/1.0/currentUser",
+                    config: {
+                        descriptor: function (args) {
+                            var gadget = this;
+                            
+                            return  {
+                            	action: "/rest/winagilechartrest/1.0/projectissuechartmessage/validate",
+                                theme : function () {
+                                    if (gadgets.window.getViewportDimensions().width < 450){
+                                        return "gdt top-label";
+                                    } else{
+                                        return "gdt";
+                                    }
+                                }(),
+                                fields: [
+                                    {
+                                        userpref: "statusId",
+                                        label: AJS.format("__MSG_gadget.winagile.status.name__"),
+                                        description: AJS.format("__MSG_gadget.winagile.status.name__"),
+                                        type: "select",
+                                        selected: this.getPref("statusId"),
+                                        options: args.statuslist
+                                    },
+                                    {
+                                        userpref: "issuetypeId",
+                                        label: AJS.format("__MSG_gadget.winagile.issuetype.name__"),
+                                        description: AJS.format("__MSG_gadget.winagile.issuetype.name__"),
+                                        type: "select",
+                                        selected: this.getPref("issuetypeId"),
+                                        options: args.itlist
+                                    },
+                                    
+                                    AJS.gadget.fields.nowConfigured()
+                                ]
+                            };
+                        },
+                        args: [
+                        {
+                            key: "itlist",
+                            ajaxOptions:  "/rest/winagilechartrest/1.0/timechartmessage/issuetypelist"
+                        },
+                        {
+                            key: "statuslist",
+                            ajaxOptions:  "/rest/winagilechartrest/1.0/unitissuechartmessage/statuslist"
+                        }]
+                    },
+                    view: {
+                        enableReload: true,
+                        onResizeReload: true,
+                        template: function (args) {
+                            var gadget = this;
+
+                            // reset view
+                            gadget.getView().addClass("g-piechart");
+                            gadget.getView().addClass("chart").empty();
+
+                            var requiresTitle = function() {
+                                return args.chart.filterTitle && args.chart.filterTitle !== "" && args.chart.filterTitle !== "gadget.common.anonymous.filter" && gadget.getPref("isPopup") === "false";
+                            };
+
+                            var setTitles = function () {
+                                if (requiresTitle()){
+                                    // This is used to pass the name of filter or project to the picker
+                                    gadget.projectOrFilterName = args.chart.filterTitle;
+                                    gadgets.window.setTitle(AJS.format("__MSG_project-issue-status.name__"));
+                                }
+                            }();
+
+                            var getChartContainer = function () {
+                                var chart = AJS.$("<div id='chart' />").appendTo(gadget.getView());
+                                return function () {
+                                    return chart;
+                                };
+                            }();
+
+                            var safeEscapeString = function(text) {
+                                if(text) {
+                                    return gadgets.util.escapeString(text);
+                                } else {
+                                    return '';
+                                }
+                            };
+
+                            var getChartImg = function () {
+                            	AJS.$("#chart", gadget.getView()).get(0).innerHTML += "<img style='display:none' src='" + args.chart.base64Image + "' alt='" + safeEscapeString(args.chart.filterTitle) + "' usemap='#" +
+                                args.chart.imageMapName + "' height='" + args.chart.height + "' width='" + args.chart.width + "' />";
+                                
+                                gadget.getView().append(args.chart.imageMap);
+                                gadget.showLoading();
+                                var chartImg = AJS.$("img", getChartContainer());
+                                AJS.$(chartImg, gadget.getView()).load(function () {
+                                    AJS.$(this).show();
+                                    gadget.hideLoading();
+                                    gadget.resize();
+                                });
+                                return function () {
+                                    return chartImg;
+                                };
+                            }();
+
+                            var setSummary = function() {
+                                var linkStart = "";
+                                var linkEnd = "";
+                                if(requiresTitle()) {
+                                    linkStart = "<a href=\"__ATLASSIAN_BASE_URL__" + args.chart.filterUrl + "\" target=\"_parent\" title=\"" + safeEscapeString(args.chart.filterTitle) + "\">";
+                                    linkEnd = "</a>";
+                                }
+                                getChartContainer().append(
+                                        AJS.$("<p/>").append(AJS.format("<img src='__ATLASSIAN_BASE_URL__/download/resources/com.winagile.gadget.TimeGadget:TimeGadget-resources/images/blue.png' />") + 
+                                        					":&nbsp;&nbsp;" +
+                                        					AJS.format("__MSG_gadget.winagile.blue.icon__") + 
+                                        					"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" +
+                                                             AJS.format("<img src='__ATLASSIAN_BASE_URL__/download/resources/com.winagile.gadget.TimeGadget:TimeGadget-resources/images/red.png' />")+ 
+                                                             ":&nbsp;&nbsp;" + 
+                                                             AJS.format("__MSG_gadget.winagile.red.icon__"))
+                                );
+                            }();
+                            if (gadgets.views.getCurrentView().getName() === "canvas") {
+                                getChartImg().load();
+                            }
+                        },
+                        args: [{
+                            key: "chart",
+                            ajaxOptions: function () {
+
+                                var width = Math.round(gadgets.window.getViewportDimensions().width * 0.9);
+                                //canvas mode needs some more room to the right for the data table.
+                                if(gadgets.views.getCurrentView().getName() === "canvas") {
+                                    width = Math.round(gadgets.window.getViewportDimensions().width * 0.6);
+                                }
+                                if (width < 150){
+                                    width = 150;
+                                }
+                                var height = Math.round(width*2/3);
+                                
+                                
+                                    return {
+                                        url: "/rest/winagilechartrest/1.0/projectissuechartmessage/generate",
+                                        data:  {
+                                            widthName: Math.round(width * 0.8),
+                                            heightName: Math.round(height * 0.8),
+                                            statusId: gadgets.util.unescapeString(this.getPref("statusId")),
+                                            issuetypeId: gadgets.util.unescapeString(this.getPref("issuetypeId"))
+                                        }
+                                    };
+                            }
+                        }]
+                    }
+                });
+            })();
+        </script>
+
+
+        ]]>
+	</Content>
+</Module>
