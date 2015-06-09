@@ -3,14 +3,11 @@ com\winagile\gadget\rest\SimpleProjectRest.class
 com\winagile\gadget\BarChart.class
 com\winagile\gadget\ProjectChart.class
 com\winagile\gadget\rest\MyRestResource.class
-com\winagile\gadget\UnitIssueStatusChart$PieChart.class
 com\winagile\gadget\rest\MyRestResourceModel.class
 com\winagile\gadget\OneSeriesUnitTimeBarChart.class
 com\winagile\gadget\rest\UnitIssueStatusRest.class
 com\winagile\gadget\rest\ProjectIssueStatusRest.class
 com\winagile\gadget\MyException.class
-com\winagile\gadget\ProjectIssueStatusChart$PieChart.class
-com\winagile\gadget\BarChart$PieChart.class
 com\winagile\gadget\SimpleProjectChart.class
 com\winagile\gadget\ProjectIssueStatusChart.class
 com\winagile\gadget\StaticParams.class
@@ -18,9 +15,7 @@ com\winagile\gadget\rest\MyErrorCollection.class
 com\winagile\gadget\UnitIssueStatusChart.class
 com\winagile\gadget\rest\MyGroupResourceModel.class
 com\winagile\gadget\rest\OneSeriesUnitTimeRest.class
-com\winagile\gadget\ProjectChart$PieChart.class
 com\winagile\gadget\rest\ProjectRestResource.class
-com\winagile\gadget\SimpleProjectChart$PieChart.class
 com\winagile\gadget\rest\ErrorResourceModel.class
 com\winagile\gadget\rest\MyGroupMiddleResourceModel.class
-com\winagile\gadget\OneSeriesUnitTimeBarChart$PieChart.class
+com\winagile\gadget\StaticParams$PieChart.class

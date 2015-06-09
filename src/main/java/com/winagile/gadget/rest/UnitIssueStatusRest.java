@@ -13,9 +13,7 @@ import javax.ws.rs.core.Response;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.atlassian.jira.config.IssueTypeManager;
 import com.atlassian.jira.config.StatusManager;
-import com.atlassian.jira.issue.CustomFieldManager;
 import com.atlassian.jira.issue.status.Status;
 import com.atlassian.jira.rest.api.util.ErrorCollection;
 import com.atlassian.plugins.rest.common.security.AnonymousAllowed;
@@ -28,17 +26,12 @@ import com.winagile.gadget.UnitIssueStatusChart;
 @Produces({ "application/json" })
 public class UnitIssueStatusRest {
 
-	final private CustomFieldManager customFM;
-	final private IssueTypeManager itM;
 	final private UnitIssueStatusChart barchart;
 	final private StatusManager sM;
 	private static final Logger log = LogManager
 			.getLogger(UnitIssueStatusRest.class);
 
-	UnitIssueStatusRest(CustomFieldManager customFM, IssueTypeManager itM,
-			UnitIssueStatusChart barchart, StatusManager sM) {
-		this.customFM = customFM;
-		this.itM = itM;
+	UnitIssueStatusRest(UnitIssueStatusChart barchart, StatusManager sM) {
 		this.barchart = barchart;
 		this.sM = sM;
 	}

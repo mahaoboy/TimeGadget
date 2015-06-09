@@ -1,8 +1,5 @@
 package com.winagile.gadget.rest;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -13,12 +10,7 @@ import javax.ws.rs.core.Response;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.atlassian.jira.config.IssueTypeManager;
-import com.atlassian.jira.config.StatusManager;
-import com.atlassian.jira.issue.issuetype.IssueType;
-import com.atlassian.jira.issue.status.Status;
 import com.atlassian.jira.rest.api.util.ErrorCollection;
-import com.atlassian.jira.util.SimpleErrorCollection;
 import com.atlassian.plugins.rest.common.security.AnonymousAllowed;
 import com.winagile.gadget.MyException;
 import com.winagile.gadget.ProjectIssueStatusChart;
@@ -29,17 +21,12 @@ import com.winagile.gadget.StaticParams;
 @Produces({ "application/json" })
 public class ProjectIssueStatusRest {
 
-	final private IssueTypeManager itM;
 	final private ProjectIssueStatusChart barchart;
-	final private StatusManager sM;
 	private static final Logger log = LogManager
 			.getLogger(ProjectIssueStatusRest.class);
 
-	ProjectIssueStatusRest(IssueTypeManager itM,
-			ProjectIssueStatusChart barchart, StatusManager sM) {
-		this.itM = itM;
+	ProjectIssueStatusRest(ProjectIssueStatusChart barchart) {
 		this.barchart = barchart;
-		this.sM = sM;
 	}
 
 	@GET

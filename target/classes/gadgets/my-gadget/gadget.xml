@@ -4,9 +4,9 @@
 			</Param></Optional><Require feature="setprefs"/><Require feature="views"/><Optional feature="atlassian.util"/><Optional feature='auth-refresh'/><Require feature="settitle"/><Require feature="dynamic-height"/><Require feature="oauthpopup"/>
 		#oauth
 		#supportedLocales("gadget.common,demogadget,project-time-gadget")
-		<Locale><messagebundle><msg name="gadget.winagile.blue.icon">\u4e25\u91cd\u95ee\u9898\u89e3\u51b3\u65f6\u95f4</msg><msg name="gadget.winagile.red.icon">\u4e00\u822c\u95ee\u9898\u89e3\u51b3\u65f6\u95f4</msg><msg name="gadget.winagile.unit.name">\u90e8\u95e8\u5b57\u6bb5</msg><msg name="gadget.winagile.time.name">\u65f6\u95f4\u5b57\u6bb5</msg><msg name="gadget.winagile.issuetype.name">\u95ee\u9898\u7c7b\u578b</msg><msg name="gadget.winagile.prio.name">\u4e25\u91cd\u95ee\u9898\u533a\u5206\u5b57\u6bb5</msg><msg name="gadget.winagile.prio.desc">\u9009\u62e9\u4e25\u91cd\u95ee\u9898\u5bf9\u5e94\u503c\uff0c\u5176\u4ed6\u9ed8\u8ba4\u4e3a\u4e00\u822c\u95ee\u9898
+		<Locale><messagebundle><msg name="gadget.winagile.blue.icon">\u4e25\u91cd\u95ee\u9898\u89e3\u51b3\u65f6\u95f4</msg><msg name="gadget.winagile.red.icon">\u4e00\u822c\u95ee\u9898\u89e3\u51b3\u65f6\u95f4</msg><msg name="gadget.winagile.unit.name">\u90e8\u95e8\u5b57\u6bb5</msg><msg name="gadget.winagile.time.name">\u5f00\u59cb\u65f6\u95f4\u5b57\u6bb5</msg><msg name="gadget.winagile.endtime.name">\u7ed3\u675f\u65f6\u95f4\u5b57\u6bb5</msg><msg name="gadget.winagile.issuetype.name">\u95ee\u9898\u7c7b\u578b</msg><msg name="gadget.winagile.prio.name">\u4e25\u91cd\u95ee\u9898\u533a\u5206\u5b57\u6bb5</msg><msg name="gadget.winagile.prio.desc">\u9009\u62e9\u4e25\u91cd\u95ee\u9898\u5bf9\u5e94\u503c\uff0c\u5176\u4ed6\u9ed8\u8ba4\u4e3a\u4e00\u822c\u95ee\u9898
 				</msg><msg name="gadget.winagile.field.error">Error Happened, Choose Another Field</msg><msg name="gadget.winagile.title">\u95ee\u9898\u89e3\u51b3\u65f6\u95f4\u67f1\u72b6\u56fe
-				</msg></messagebundle></Locale></ModulePrefs><UserPref name="isConfigured" datatype="hidden" default_value="false"/><UserPref name="refresh" datatype="hidden" default_value="false"/><UserPref name="isPopup" datatype="hidden" default_value="false"/><UserPref name="timeId" datatype="hidden"/><UserPref name="issuetypeId" datatype="hidden"/><UserPref name="priorityId" datatype="hidden"/><Content type="html" view="profile,canvas,home">
+				</msg></messagebundle></Locale></ModulePrefs><UserPref name="isConfigured" datatype="hidden" default_value="false"/><UserPref name="refresh" datatype="hidden" default_value="false"/><UserPref name="isPopup" datatype="hidden" default_value="false"/><UserPref name="timeId" datatype="hidden"/><UserPref name="endtimeId" datatype="hidden"/><UserPref name="issuetypeId" datatype="hidden"/><UserPref name="priorityId" datatype="hidden"/><Content type="html" view="profile,canvas,home">
         <![CDATA[
 
         #requireContext("com.atlassian.jira.gadgets:autocomplete")
@@ -38,6 +38,14 @@
                                         description: AJS.format("__MSG_gadget.winagile.time.name__"),
                                         type: "select",
                                         selected: this.getPref("timeId"),
+                                        options: args.cflist
+                                    },
+                                    {
+                                        userpref: "endtimeId",
+                                        label: AJS.format("__MSG_gadget.winagile.endtime.name__"),
+                                        description: AJS.format("__MSG_gadget.winagile.endtime.name__"),
+                                        type: "select",
+                                        selected: this.getPref("endtimeId"),
                                         options: args.cflist
                                     },
                                     {
@@ -170,6 +178,7 @@
                                             widthName: Math.round(width * 0.8),
                                             heightName: Math.round(height * 0.8),
                                             timeId: gadgets.util.unescapeString(this.getPref("timeId")),
+                                            endtimeId: gadgets.util.unescapeString(this.getPref("endtimeId")),
                                             issuetypeId: gadgets.util.unescapeString(this.getPref("issuetypeId")),
                                             priorityId: gadgets.util.unescapeString(this.getPref("priorityId"))
                                         }

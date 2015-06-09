@@ -1,8 +1,5 @@
 package com.winagile.gadget.rest;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -13,12 +10,7 @@ import javax.ws.rs.core.Response;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.atlassian.jira.config.IssueTypeManager;
-import com.atlassian.jira.issue.CustomFieldManager;
-import com.atlassian.jira.issue.fields.CustomField;
-import com.atlassian.jira.issue.issuetype.IssueType;
 import com.atlassian.jira.rest.api.util.ErrorCollection;
-import com.atlassian.jira.util.SimpleErrorCollection;
 import com.atlassian.plugins.rest.common.security.AnonymousAllowed;
 import com.winagile.gadget.MyException;
 import com.winagile.gadget.OneSeriesUnitTimeBarChart;
@@ -29,16 +21,11 @@ import com.winagile.gadget.StaticParams;
 @Produces({ "application/json" })
 public class OneSeriesUnitTimeRest {
 
-	final private CustomFieldManager customFM;
-	final private IssueTypeManager itM;
 	final private OneSeriesUnitTimeBarChart barchart;
 	private static final Logger log = LogManager
 			.getLogger(OneSeriesUnitTimeRest.class);
 
-	OneSeriesUnitTimeRest(CustomFieldManager customFM, IssueTypeManager itM,
-			OneSeriesUnitTimeBarChart barchart) {
-		this.customFM = customFM;
-		this.itM = itM;
+	OneSeriesUnitTimeRest(OneSeriesUnitTimeBarChart barchart) {
 		this.barchart = barchart;
 	}
 
@@ -49,22 +36,25 @@ public class OneSeriesUnitTimeRest {
 			@QueryParam("heightName") String height,
 			@QueryParam("unitId") String unitId,
 			@QueryParam("timeId") String timeId,
+			@QueryParam("endtimeId") String endtimeId,
 			@QueryParam("issuetypeId") String issuetypeId) {
 
 		String Loginfo = "com.winagile.gadget.rest Generate: width:" + width
 				+ ",height:" + height + ",unitId:" + unitId + ",timeId:"
-				+ timeId + ",issuetypeId:" + issuetypeId;
+				+ timeId + ",issuetypeId:" + issuetypeId + ",endtimeId:"
+				+ endtimeId;
 		System.out.println(Loginfo);
 
 		log.error(Loginfo);
 		if (width != null && height != null && unitId != null && timeId != null
-				&& issuetypeId != null) {
+				&& issuetypeId != null && endtimeId != null) {
 			try {
 				return Response.ok(
 						barchart.generateChart(Integer.parseInt(width),
 								Integer.parseInt(height),
-								Long.parseLong(timeId), Long.parseLong(unitId),
-								issuetypeId)).build();
+								Long.parseLong(timeId),
+								Long.parseLong(endtimeId),
+								Long.parseLong(unitId), issuetypeId)).build();
 			} catch (MyException e) {
 				return Response.status(400)
 						.entity(getErrorCollection(new MyException(e))).build();
@@ -82,18 +72,21 @@ public class OneSeriesUnitTimeRest {
 	@Path("validate")
 	public Response validatePieChart(@QueryParam("unitId") String unitId,
 			@QueryParam("timeId") String timeId,
+			@QueryParam("endtimeId") String endtimeId,
 			@QueryParam("issuetypeId") String issuetypeId) {
 		String Loginfo = "com.winagile.gadget.rest Validate: unitId:" + unitId
-				+ ",timeId:" + timeId + ",issuetypeId:" + issuetypeId;
+				+ ",timeId:" + timeId + ",issuetypeId:" + issuetypeId
+				+ ",endtimeId:" + endtimeId;
 		System.out.println(Loginfo);
 
 		log.error(Loginfo);
-		if (unitId != null && timeId != null && issuetypeId != null) {
+		if (unitId != null && timeId != null && issuetypeId != null
+				&& endtimeId != null) {
 			try {
 				barchart.generateChart(StaticParams.REPORT_IMAGE_WIDTH,
 						StaticParams.REPORT_IMAGE_HEIGHT,
-						Long.parseLong(timeId), Long.parseLong(unitId),
-						issuetypeId);
+						Long.parseLong(timeId), Long.parseLong(endtimeId),
+						Long.parseLong(unitId), issuetypeId);
 				return Response.ok(
 						new String("No input validation errors found."))
 						.build();
@@ -115,7 +108,7 @@ public class OneSeriesUnitTimeRest {
 
 	private ErrorCollection getErrorCollection(MyException e) {
 		if (e.getExType() != null && e.getExType().equals("time")) {
-			return StaticParams.getErrorRep(e, log, "timeId");
+			return StaticParams.getDoubleErrorRep(e, log, "timeId", "endtimeId");
 		} else {
 			return StaticParams.getErrorRep(e, log, "unitId");
 		}
