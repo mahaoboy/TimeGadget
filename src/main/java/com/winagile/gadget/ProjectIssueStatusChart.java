@@ -60,7 +60,7 @@ public class ProjectIssueStatusChart {
 		JFreeChart jchart = StaticParams.createChart(categoryDataset);
 
 		return StaticParams.createPieChart(width, height, jchart,
-				categoryDataset);
+				categoryDataset, "");
 	}
 
 	private CategoryDataset createDataset() throws MyException {

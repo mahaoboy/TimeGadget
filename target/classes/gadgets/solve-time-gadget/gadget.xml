@@ -5,7 +5,7 @@
 		#oauth
 		#supportedLocales("gadget.common,demogadget,solve-time-gadget")
 		<Locale><messagebundle><msg name="gadget.winagile.blue.icon">\u95ee\u9898\u89e3\u51b3\u65f6\u95f4</msg><msg name="gadget.winagile.unit.name">\u90e8\u95e8\u5b57\u6bb5</msg><msg name="gadget.winagile.time.name">\u5f00\u59cb\u65f6\u95f4\u5b57\u6bb5</msg><msg name="gadget.winagile.endtime.name">\u7ed3\u675f\u65f6\u95f4\u5b57\u6bb5</msg><msg name="gadget.winagile.issuetype.name">\u95ee\u9898\u7c7b\u578b</msg><msg name="gadget.winagile.prio.name">\u4e25\u91cd\u95ee\u9898\u533a\u5206\u5b57\u6bb5</msg><msg name="gadget.winagile.field.error">Error Happened, Choose Another Field</msg><msg name="gadget.winagile.title">\u95ee\u9898\u89e3\u51b3\u65f6\u95f4\u67f1\u72b6\u56fe
-				</msg></messagebundle></Locale></ModulePrefs><UserPref name="isConfigured" datatype="hidden" default_value="false"/><UserPref name="refresh" datatype="hidden" default_value="false"/><UserPref name="isPopup" datatype="hidden" default_value="false"/><UserPref name="unitId" datatype="hidden"/><UserPref name="timeId" datatype="hidden"/><UserPref name="endtimeId" datatype="hidden"/><UserPref name="issuetypeId" datatype="hidden"/><Content type="html" view="profile,canvas,home">
+				</msg><msg name="gadget.winagile.timeunitId.name">\u65f6\u95f4\u5355\u4f4d\u9009\u62e9</msg><msg name="gadget.winagile.projectId.name">\u9879\u76ee\u9009\u62e9</msg><msg name="gadget.winagile.timeunitId.hour">\u5c0f\u65f6</msg><msg name="gadget.winagile.timeunitId.second">\u79d2</msg></messagebundle></Locale></ModulePrefs><UserPref name="isConfigured" datatype="hidden" default_value="false"/><UserPref name="refresh" datatype="hidden" default_value="false"/><UserPref name="isPopup" datatype="hidden" default_value="false"/><UserPref name="projectId" datatype="hidden"/><UserPref name="unitId" datatype="hidden"/><UserPref name="timeId" datatype="hidden"/><UserPref name="endtimeId" datatype="hidden"/><UserPref name="issuetypeId" datatype="hidden"/><UserPref name="timeunitId" datatype="hidden"/><Content type="html" view="profile,canvas,home">
         <![CDATA[
 
         #requireContext("com.atlassian.jira.gadgets:autocomplete")
@@ -31,6 +31,14 @@
                                     }
                                 }(),
                                 fields: [
+                                	{
+                                        userpref: "projectId",
+                                        label: AJS.format("__MSG_gadget.winagile.projectId.name__"),
+                                        description: AJS.format("__MSG_gadget.winagile.projectId.name__"),
+                                        type: "select",
+                                        selected: this.getPref("projectId"),
+                                        options: args.projectlist
+                                    },
                                     {
                                         userpref: "unitId",
                                         label: AJS.format("__MSG_gadget.winagile.unit.name__"),
@@ -64,11 +72,32 @@
                                         options: args.itlist
                                     },
                                     
+                                    {
+                                        userpref: "timeunitId",
+                                        label: AJS.format("__MSG_gadget.winagile.timeunitId.name__"),
+                                        description: AJS.format("__MSG_gadget.winagile.timeunitId.name__"),
+                                        type: "select",
+                                        selected: this.getPref("timeunitId"),
+                                        options: [
+								            {  
+								                label:AJS.format("__MSG_gadget.winagile.timeunitId.hour__"),
+								                value:"hour"
+								            },
+								            {
+								                label:AJS.format("__MSG_gadget.winagile.timeunitId.second__"),
+								                value:"second"
+								            }
+								        ]
+                                    },
                                     AJS.gadget.fields.nowConfigured()
                                 ]
                             };
                         },
                         args: [{
+                            key: "projectlist",
+                            ajaxOptions:  "/rest/winagilechartrest/1.0/timechartmessage/projectlist"
+                        },
+                        {
                             key: "cflist",
                             ajaxOptions:  "/rest/winagilechartrest/1.0/timechartmessage/customfieldlist"
                         },
@@ -95,7 +124,7 @@
                                 if (requiresTitle()){
                                     // This is used to pass the name of filter or project to the picker
                                     gadget.projectOrFilterName = args.chart.filterTitle;
-                                    gadgets.window.setTitle(AJS.format("__MSG_solve-time-gadget.name__"));
+                                    gadgets.window.setTitle(AJS.format("__MSG_solve-time-gadget.name__", args.chart.filterTitle));
                                 }
                             }();
 
@@ -139,7 +168,9 @@
                                     linkEnd = "</a>";
                                 }
                                 getChartContainer().append(
-                                        AJS.$("<p/>").append(AJS.format("<img src='__ATLASSIAN_BASE_URL__/download/resources/com.winagile.gadget.TimeGadget:TimeGadget-resources/images/blue.png' />") + 
+                                        AJS.$("<p/>").append("<span style='font-size:14px'>" +AJS.format(args.chart.filterTitle) +"</span>" + 
+                                        					"<br/>" +
+                                        					AJS.format("<img src='__ATLASSIAN_BASE_URL__/download/resources/com.winagile.gadget.TimeGadget:TimeGadget-resources/images/blue.png' />") + 
                                         					":&nbsp;&nbsp;" +
                                         					AJS.format("__MSG_gadget.winagile.blue.icon__"))
                                 );
@@ -147,6 +178,7 @@
                             if (gadgets.views.getCurrentView().getName() === "canvas") {
                                 // finally after the image has loaded we create the data table
                                 getChartImg().load();
+                                gadgets.window.setTitle(AJS.format("__MSG_solve-time-gadget.name__", args.chart.filterTitle));
                             }
                         },
                         args: [{
@@ -171,7 +203,9 @@
                                             heightName: Math.round(height * 0.8),
                                             unitId: gadgets.util.unescapeString(this.getPref("unitId")),
                                             timeId: gadgets.util.unescapeString(this.getPref("timeId")),
+                                            timeunitId: gadgets.util.unescapeString(this.getPref("timeunitId")),
                                             endtimeId: gadgets.util.unescapeString(this.getPref("endtimeId")),
+                                            projectId: gadgets.util.unescapeString(this.getPref("projectId")),
                                             issuetypeId: gadgets.util.unescapeString(this.getPref("issuetypeId"))
                                         }
                                     };

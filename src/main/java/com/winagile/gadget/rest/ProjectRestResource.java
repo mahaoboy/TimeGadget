@@ -40,6 +40,7 @@ public class ProjectRestResource {
 			@QueryParam("timeId") String timeId,
 			@QueryParam("endtimeId") String endtimeId,
 			@QueryParam("issuetypeId") String issuetypeId,
+			@QueryParam("timeunitId") String timeunitId,
 			@QueryParam("priorityId") String priorityId) {
 
 		String Loginfo = "com.winagile.gadget.rest Generate: width:" + width
@@ -51,14 +52,15 @@ public class ProjectRestResource {
 		log.error(Loginfo);
 		if (width != null && height != null && timeId != null
 				&& issuetypeId != null && priorityId != null
-				&& endtimeId != null) {
+				&& endtimeId != null&& timeunitId != null) {
 			try {
 				return Response.ok(
 						barchart.generateChart(Integer.parseInt(width),
 								Integer.parseInt(height),
 								Long.parseLong(timeId),
 								Long.parseLong(endtimeId), issuetypeId,
-								priorityId)).build();
+								priorityId,
+								timeunitId)).build();
 			} catch (MyException e) {
 				return Response.status(400)
 						.entity(getErrorCollection(new MyException(e))).build();
@@ -68,7 +70,7 @@ public class ProjectRestResource {
 			}
 		}
 		return Response.status(400)
-				.entity(getErrorCollection(new MyException())).build();
+				.entity(getErrorCollection(new MyException("demogadget.exception.fieldnullerror"))).build();
 
 	}
 
@@ -77,6 +79,7 @@ public class ProjectRestResource {
 	public Response validatePieChart(@QueryParam("timeId") String timeId,
 			@QueryParam("endtimeId") String endtimeId,
 			@QueryParam("issuetypeId") String issuetypeId,
+			@QueryParam("timeunitId") String timeunitId,
 			@QueryParam("priorityId") String priorityId) {
 		String Loginfo = "com.winagile.gadget.rest Validate: timeId:" + timeId
 				+ ",issuetypeId:" + issuetypeId + ",priorityId:" + priorityId
@@ -85,12 +88,13 @@ public class ProjectRestResource {
 
 		log.error(Loginfo);
 		if (timeId != null && issuetypeId != null && priorityId != null
-				&& endtimeId != null) {
+				&& endtimeId != null&& timeunitId != null) {
 			try {
 				barchart.generateChart(StaticParams.REPORT_IMAGE_WIDTH,
 						StaticParams.REPORT_IMAGE_HEIGHT,
 						Long.parseLong(timeId), Long.parseLong(endtimeId),
-						issuetypeId, priorityId);
+						issuetypeId, priorityId,
+						timeunitId);
 				return Response.ok(
 						new String("No input validation errors found."))
 						.build();
@@ -104,7 +108,7 @@ public class ProjectRestResource {
 		} else {
 			return Response
 					.status(400)
-					.entity(getErrorCollection(new MyException("Field is null")))
+					.entity(getErrorCollection(new MyException("demogadget.exception.fieldnullerror")))
 					.build();
 		}
 

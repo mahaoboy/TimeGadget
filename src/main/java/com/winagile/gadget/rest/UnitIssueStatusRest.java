@@ -43,6 +43,7 @@ public class UnitIssueStatusRest {
 			@QueryParam("heightName") String height,
 			@QueryParam("statusId") String statusId,
 			@QueryParam("unitId") String unitId,
+			@QueryParam("projectId") String projectId,
 			@QueryParam("issuetypeId") String issuetypeId) {
 
 		String Loginfo = "com.winagile.gadget.rest Generate: width:" + width
@@ -52,12 +53,13 @@ public class UnitIssueStatusRest {
 
 		log.error(Loginfo);
 		if (width != null && height != null && statusId != null
-				&& unitId != null && issuetypeId != null) {
+				&& unitId != null && issuetypeId != null && projectId != null) {
 			try {
-				return Response.ok(
-						barchart.generateChart(Integer.parseInt(width),
+				return Response
+						.ok(barchart.generateChart(Integer.parseInt(width),
 								Integer.parseInt(height), statusId,
-								Long.parseLong(unitId), issuetypeId)).build();
+								Long.parseLong(unitId), issuetypeId, projectId))
+						.build();
 			} catch (MyException e) {
 				return Response.status(400)
 						.entity(getErrorCollection(new MyException(e))).build();
@@ -66,8 +68,10 @@ public class UnitIssueStatusRest {
 						.entity(getErrorCollection(new MyException(e))).build();
 			}
 		}
-		return Response.status(400)
-				.entity(getErrorCollection(new MyException())).build();
+		return Response
+				.status(400)
+				.entity(getErrorCollection(new MyException(
+						"demogadget.exception.fieldnullerror"))).build();
 
 	}
 
@@ -75,6 +79,7 @@ public class UnitIssueStatusRest {
 	@Path("validate")
 	public Response validatePieChart(@QueryParam("statusId") String statusId,
 			@QueryParam("unitId") String unitId,
+			@QueryParam("projectId") String projectId,
 			@QueryParam("issuetypeId") String issuetypeId) {
 		String Loginfo = "com.winagile.gadget.rest Validate: statusId:"
 				+ statusId + ",unitId:" + unitId + ",issuetypeId:"
@@ -82,11 +87,12 @@ public class UnitIssueStatusRest {
 		System.out.println(Loginfo);
 
 		log.error(Loginfo);
-		if (statusId != null && unitId != null && issuetypeId != null) {
+		if (statusId != null && unitId != null && issuetypeId != null
+				&& projectId != null) {
 			try {
 				barchart.generateChart(StaticParams.REPORT_IMAGE_WIDTH,
 						StaticParams.REPORT_IMAGE_HEIGHT, statusId,
-						Long.parseLong(unitId), issuetypeId);
+						Long.parseLong(unitId), issuetypeId, projectId);
 				return Response.ok(
 						new String("No input validation errors found."))
 						.build();
@@ -100,8 +106,8 @@ public class UnitIssueStatusRest {
 		} else {
 			return Response
 					.status(400)
-					.entity(getErrorCollection(new MyException("Field is null")))
-					.build();
+					.entity(getErrorCollection(new MyException(
+							"demogadget.exception.fieldnullerror"))).build();
 		}
 
 	}

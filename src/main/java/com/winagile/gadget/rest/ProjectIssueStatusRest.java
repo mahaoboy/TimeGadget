@@ -59,7 +59,7 @@ public class ProjectIssueStatusRest {
 			}
 		}
 		return Response.status(400)
-				.entity(getErrorCollection(new MyException())).build();
+				.entity(getErrorCollection(new MyException("demogadget.exception.fieldnullerror"))).build();
 
 	}
 
@@ -89,7 +89,7 @@ public class ProjectIssueStatusRest {
 		} else {
 			return Response
 					.status(400)
-					.entity(getErrorCollection(new MyException("Field is null")))
+					.entity(getErrorCollection(new MyException("demogadget.exception.fieldnullerror")))
 					.build();
 		}
 

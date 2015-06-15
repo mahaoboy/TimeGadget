@@ -21,6 +21,7 @@ import com.atlassian.jira.issue.customfields.option.Options;
 import com.atlassian.jira.issue.fields.CustomField;
 import com.atlassian.jira.issue.search.SearchException;
 import com.atlassian.jira.issue.search.SearchResults;
+import com.atlassian.jira.project.ProjectManager;
 import com.atlassian.jira.user.ApplicationUsers;
 import com.atlassian.jira.web.bean.PagerFilter;
 import com.atlassian.query.Query;
@@ -37,6 +38,8 @@ public class UnitIssueStatusChart {
 	private String issueType;
 	private String solvestatus;
 	private User auser;
+	private String projectId;
+	final private ProjectManager pm;
 	final private PluginLicenseManager licenseManager;
 	final private I18nResolver i18n;
 
@@ -45,7 +48,8 @@ public class UnitIssueStatusChart {
 
 	UnitIssueStatusChart(CustomFieldManager customFM, IssueTypeManager itM,
 			SearchService ss, OptionsManager opM, StatusManager sM,
-			PluginLicenseManager licenseManager, I18nResolver i18n) {
+			PluginLicenseManager licenseManager, I18nResolver i18n,
+			ProjectManager pm) {
 		this.customFM = customFM;
 		this.itM = itM;
 		this.ss = ss;
@@ -53,18 +57,24 @@ public class UnitIssueStatusChart {
 		this.sM = sM;
 		this.licenseManager = licenseManager;
 		this.i18n = i18n;
+		this.pm = pm;
 	}
 
 	public StaticParams.PieChart generateChart(int width, int height,
-			String solvestatus, Long Bid, String issueType) throws MyException {
+			String solvestatus, Long Bid, String issueType, String projectId)
+			throws MyException {
 
 		StaticParams.checkLicenseStatus(licenseManager, i18n);
 		this.issueType = issueType;
 		this.solvestatus = solvestatus;
+		this.projectId = projectId;
 		final CategoryDataset categoryDataset = createDataset(Bid);
 		JFreeChart jchart = StaticParams.createChart(categoryDataset);
-		return StaticParams.createPieChart(width, height, jchart,
-				categoryDataset);
+		return StaticParams
+				.createPieChart(width, height, jchart, categoryDataset,
+						projectId.equals(StaticParams.allProject) ? "" : pm
+								.getProjectObj(Long.parseLong(projectId))
+								.getName());
 	}
 
 	private CategoryDataset createDataset(Long Bid) throws MyException {
@@ -121,6 +131,12 @@ public class UnitIssueStatusChart {
 					+ StaticParams.equalD
 					+ itM.getIssueType(issueType).getName() + StaticParams.andD
 					+ extraJQL;
+			if (!projectId.equals(StaticParams.allProject)) {
+				jqlQuery += StaticParams.andD + StaticParams.project
+						+ StaticParams.equalD + StaticParams.quoteD
+						+ pm.getProjectObj(Long.parseLong(projectId)).getName()
+						+ StaticParams.quoteD;
+			}
 			final String logInfo = "com.winagile.demo.jira.reports Info: JQL : "
 					+ jqlQuery;
 			System.out.println(logInfo);

@@ -1,6 +1,8 @@
 package com.winagile.gadget;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -20,6 +22,7 @@ import com.atlassian.jira.issue.customfields.option.Options;
 import com.atlassian.jira.issue.fields.CustomField;
 import com.atlassian.jira.issue.search.SearchException;
 import com.atlassian.jira.issue.search.SearchResults;
+import com.atlassian.jira.project.ProjectManager;
 import com.atlassian.jira.user.ApplicationUsers;
 import com.atlassian.jira.web.bean.PagerFilter;
 import com.atlassian.query.Query;
@@ -36,11 +39,15 @@ public class OneSeriesUnitTimeBarChart {
 	final private CustomFieldManager customFM;
 	final private SearchService ss;
 	final private OptionsManager opM;
-	private CustomField Acf;
+	private Long Aid;
+	private Long Cid;
 	private CustomField Bcf;
-	private CustomField Ccf;
 	private String issueType;
 	private User auser;
+	private String projectId;
+	final private ProjectManager pm;
+
+	private String timeunitId;
 	final private PluginLicenseManager licenseManager;
 	final private I18nResolver i18n;
 
@@ -49,35 +56,40 @@ public class OneSeriesUnitTimeBarChart {
 
 	OneSeriesUnitTimeBarChart(CustomFieldManager customFM,
 			IssueTypeManager itM, SearchService ss, OptionsManager opM,
-			PluginLicenseManager licenseManager, I18nResolver i18n) {
+			PluginLicenseManager licenseManager, I18nResolver i18n,
+			ProjectManager pm) {
 		this.customFM = customFM;
 		this.itM = itM;
 		this.ss = ss;
 		this.opM = opM;
 		this.licenseManager = licenseManager;
 		this.i18n = i18n;
+		this.pm = pm;
 	}
 
 	public StaticParams.PieChart generateChart(int width, int height, Long Aid,
-			Long Cid, Long Bid, String issueType) throws MyException {
+			Long Cid, Long Bid, String issueType, String timeunitId,
+			String projectId) throws MyException {
 
 		StaticParams.checkLicenseStatus(licenseManager, i18n);
 		this.issueType = issueType;
-
-		final CategoryDataset categoryDataset = createDataset(Aid, Cid, Bid);
+		this.Aid = Aid;
+		this.Cid = Cid;
+		this.Bcf = customFM.getCustomFieldObject(Bid);
+		this.timeunitId = timeunitId;
+		this.projectId = projectId;
+		final CategoryDataset categoryDataset = createDataset();
 		JFreeChart jchart = StaticParams.createChart(categoryDataset);
-		return StaticParams.createPieChart(width, height, jchart,
-				categoryDataset);
+		return StaticParams
+				.createPieChart(width, height, jchart, categoryDataset,
+						projectId.equals(StaticParams.allProject) ? "" : pm
+								.getProjectObj(Long.parseLong(projectId))
+								.getName());
 	}
 
-	private CategoryDataset createDataset(Long Aid, Long Cid, Long Bid)
-			throws MyException {
+	private CategoryDataset createDataset() throws MyException {
 		final String series1 = "First";
 		final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-		Acf = customFM.getCustomFieldObject(Aid);
-		Ccf = customFM.getCustomFieldObject(Cid);
-		Bcf = customFM.getCustomFieldObject(Bid);
 
 		Options options;
 		try {
@@ -104,8 +116,9 @@ public class OneSeriesUnitTimeBarChart {
 		auser = ApplicationUsers.toDirectoryUser(ComponentAccessor
 				.getJiraAuthenticationContext().getUser());
 
-		double totalTime = 0;
-		int totalNum = 0;
+		Map<String, Double> timeMap = new HashMap<String, Double>();
+		timeMap.put(StaticParams.totalTime, 0d);
+		timeMap.put(StaticParams.totalNum, 0d);
 		String jqlQuery;
 		SearchService.ParseResult parseResult;
 		try {
@@ -113,6 +126,13 @@ public class OneSeriesUnitTimeBarChart {
 			jqlQuery = "\"" + Bcf.getFieldName() + "\" = \"" + op.getValue()
 					+ "\" and issuetype = "
 					+ itM.getIssueType(issueType).getName();
+			log.error("projectIdprojectId projectIdprojectId projectIdprojectId:"+projectId);
+			if (!projectId.equals(StaticParams.allProject)) {
+				jqlQuery += StaticParams.andD + StaticParams.project
+						+ StaticParams.equalD + StaticParams.quoteD
+						+ pm.getProjectObj(Long.parseLong(projectId)).getName()
+						+ StaticParams.quoteD;
+			}
 			final String logInfo = "com.winagile.demo.jira.reports Info: JQL : "
 					+ jqlQuery;
 			System.out.println(logInfo);
@@ -132,16 +152,8 @@ public class OneSeriesUnitTimeBarChart {
 						PagerFilter.getUnlimitedFilter());
 				List<Issue> issues = results.getIssues();
 				for (Issue issue : issues) {
-					Object Avalue = Acf.getValue(issue);
-					Object Cvalue = Ccf.getValue(issue);
-					if (Avalue != null && Cvalue != null) {
-						totalTime += (Double) Cvalue - (Double) Avalue;
-						totalNum++;
-					} else {
-						System.out
-								.println("com.winagile.demo.jira.reports ERROR: "
-										+ Acf.getName() + " : " + Avalue);
-					}
+					StaticParams.getTotalTime(timeMap, issue, Aid, Cid,
+							customFM, timeunitId);
 
 				}
 			} catch (SearchException e1) {
@@ -157,7 +169,10 @@ public class OneSeriesUnitTimeBarChart {
 				throw new MyException("time", "demogadget.timefielderror");
 			}
 
-			dataset.addValue(totalTime / totalNum, series, op.getValue());
+			dataset.addValue(
+					timeMap.get(StaticParams.totalTime)
+							/ timeMap.get(StaticParams.totalNum), series,
+					op.getValue());
 		} else {
 			System.out
 					.println("com.winagile.demo.jira.reports ERROR: JQL is not valid");

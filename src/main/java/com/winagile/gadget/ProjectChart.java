@@ -1,6 +1,8 @@
 package com.winagile.gadget;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -15,7 +17,6 @@ import com.atlassian.jira.config.IssueTypeManager;
 import com.atlassian.jira.issue.CustomFieldManager;
 import com.atlassian.jira.issue.Issue;
 import com.atlassian.jira.issue.customfields.manager.OptionsManager;
-import com.atlassian.jira.issue.fields.CustomField;
 import com.atlassian.jira.issue.search.SearchException;
 import com.atlassian.jira.issue.search.SearchResults;
 import com.atlassian.jira.project.Project;
@@ -32,10 +33,11 @@ public class ProjectChart {
 	final private ProjectManager pm;
 	final private SearchService ss;
 	final private OptionsManager opM;
-	private CustomField Acf;
-	private CustomField Ccf;
+	private Long Aid;
+	private Long Cid;
 	private String issueType;
 	private User auser;
+	private String timeunitId;
 	final private PluginLicenseManager licenseManager;
 	final private I18nResolver i18n;
 
@@ -54,25 +56,25 @@ public class ProjectChart {
 	}
 
 	public StaticParams.PieChart generateChart(int width, int height, Long Aid,
-			Long Cid, String issueType, String prio) throws MyException {
+			Long Cid, String issueType, String prio, String timeunitId)
+			throws MyException {
 
 		StaticParams.checkLicenseStatus(licenseManager, i18n);
 		this.issueType = issueType;
-
-		final CategoryDataset categoryDataset = createDataset(Aid, Cid, prio);
+		this.Aid = Aid;
+		this.Cid = Cid;
+		this.timeunitId = timeunitId;
+		final CategoryDataset categoryDataset = createDataset(prio);
 		JFreeChart jchart = StaticParams.createChart(categoryDataset);
 		return StaticParams.createPieChart(width, height, jchart,
-				categoryDataset);
+				categoryDataset, "");
 	}
 
-	private CategoryDataset createDataset(Long Aid, Long Cid, String prio)
-			throws MyException {
+	private CategoryDataset createDataset(String prio) throws MyException {
 		final String series1 = StaticParams.critical;
 		final String series2 = StaticParams.normal;
 		final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
-		Acf = customFM.getCustomFieldObject(Aid);
-		Ccf = customFM.getCustomFieldObject(Cid);
 		List<Project> pl = pm.getProjectObjects();
 		final String name = prio.split(StaticParams.delimeterV)[0];
 		final String value = prio.split(StaticParams.delimeterV)[1];
@@ -106,8 +108,9 @@ public class ProjectChart {
 		auser = ApplicationUsers.toDirectoryUser(ComponentAccessor
 				.getJiraAuthenticationContext().getUser());
 
-		double totalTime = 0;
-		int totalNum = 0;
+		Map<String, Double> timeMap = new HashMap<String, Double>();
+		timeMap.put(StaticParams.totalTime, 0d);
+		timeMap.put(StaticParams.totalNum, 0d);
 		String jqlQuery;
 		SearchService.ParseResult parseResult;
 		try {
@@ -135,16 +138,8 @@ public class ProjectChart {
 						PagerFilter.getUnlimitedFilter());
 				List<Issue> issues = results.getIssues();
 				for (Issue issue : issues) {
-					Object Avalue = Acf.getValue(issue);
-					Object Cvalue = Ccf.getValue(issue);
-					if (Avalue != null && Cvalue != null) {
-						totalTime += (Double) Cvalue - (Double) Avalue;
-						totalNum++;
-					} else {
-						System.out
-								.println("com.winagile.demo.jira.reports ERROR: "
-										+ Acf.getName() + " : " + Avalue);
-					}
+					StaticParams.getTotalTime(timeMap, issue, Aid, Cid,
+							customFM, timeunitId);
 				}
 			} catch (SearchException e1) {
 				// TODO Auto-generated catch block
@@ -159,7 +154,10 @@ public class ProjectChart {
 				throw new MyException("time", "demogadget.timefielderror");
 			}
 
-			dataset.addValue(totalTime / totalNum, series, proj.getName());
+			dataset.addValue(
+					timeMap.get(StaticParams.totalTime)
+							/ timeMap.get(StaticParams.totalNum), series,
+					proj.getName());
 		} else {
 			System.out
 					.println("com.winagile.demo.jira.reports ERROR: JQL is not valid");

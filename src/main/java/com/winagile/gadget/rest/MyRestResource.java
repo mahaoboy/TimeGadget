@@ -19,8 +19,9 @@ import com.atlassian.jira.issue.customfields.manager.OptionsManager;
 import com.atlassian.jira.issue.customfields.option.Option;
 import com.atlassian.jira.issue.fields.CustomField;
 import com.atlassian.jira.issue.issuetype.IssueType;
+import com.atlassian.jira.project.Project;
+import com.atlassian.jira.project.ProjectManager;
 import com.atlassian.jira.rest.api.util.ErrorCollection;
-import com.atlassian.jira.util.SimpleErrorCollection;
 import com.atlassian.plugins.rest.common.security.AnonymousAllowed;
 import com.atlassian.sal.api.message.I18nResolver;
 import com.winagile.gadget.BarChart;
@@ -40,16 +41,19 @@ public class MyRestResource {
 	final private I18nResolver i18n;
 	final private OptionsManager opM;
 	final private BarChart barchart;
+	final private ProjectManager pm;
 	private static final Logger log = LogManager
 			.getLogger(MyRestResource.class);
 
 	MyRestResource(CustomFieldManager customFM, IssueTypeManager itM,
-			I18nResolver i18n, OptionsManager opM, BarChart barchart) {
+			I18nResolver i18n, OptionsManager opM, BarChart barchart,
+			ProjectManager pm) {
 		this.customFM = customFM;
 		this.itM = itM;
 		this.i18n = i18n;
 		this.opM = opM;
 		this.barchart = barchart;
+		this.pm = pm;
 	}
 
 	@GET
@@ -61,6 +65,8 @@ public class MyRestResource {
 			@QueryParam("timeId") String timeId,
 			@QueryParam("endtimeId") String endtimeId,
 			@QueryParam("issuetypeId") String issuetypeId,
+			@QueryParam("timeunitId") String timeunitId,
+			@QueryParam("projectId") String projectId,
 			@QueryParam("priorityId") String priorityId) {
 
 		String Loginfo = "com.winagile.gadget.rest Generate: width:" + width
@@ -72,13 +78,15 @@ public class MyRestResource {
 		log.error(Loginfo);
 		if (width != null && height != null && unitId != null && timeId != null
 				&& issuetypeId != null && priorityId != null
-				&& endtimeId != null) {
+				&& endtimeId != null && timeunitId != null && projectId != null) {
 			try {
 				return Response.ok(
 						barchart.generateChart(Integer.parseInt(width),
 								Integer.parseInt(height),
-								Long.parseLong(timeId),Long.parseLong(endtimeId), Long.parseLong(unitId),
-								issuetypeId, priorityId)).build();
+								Long.parseLong(timeId),
+								Long.parseLong(endtimeId),
+								Long.parseLong(unitId), issuetypeId,
+								priorityId, timeunitId, projectId)).build();
 			} catch (MyException e) {
 				return Response.status(400)
 						.entity(getErrorCollection(new MyException(e))).build();
@@ -87,8 +95,10 @@ public class MyRestResource {
 						.entity(getErrorCollection(new MyException(e))).build();
 			}
 		}
-		return Response.status(400)
-				.entity(getErrorCollection(new MyException())).build();
+		return Response
+				.status(400)
+				.entity(getErrorCollection(new MyException(
+						"demogadget.exception.fieldnullerror"))).build();
 
 	}
 
@@ -98,6 +108,8 @@ public class MyRestResource {
 			@QueryParam("timeId") String timeId,
 			@QueryParam("endtimeId") String endtimeId,
 			@QueryParam("issuetypeId") String issuetypeId,
+			@QueryParam("timeunitId") String timeunitId,
+			@QueryParam("projectId") String projectId,
 			@QueryParam("priorityId") String priorityId) {
 		String Loginfo = "com.winagile.gadget.rest Validate: unitId:" + unitId
 				+ ",timeId:" + timeId + ",issuetypeId:" + issuetypeId
@@ -106,12 +118,14 @@ public class MyRestResource {
 
 		log.error(Loginfo);
 		if (unitId != null && timeId != null && issuetypeId != null
-				&& priorityId != null && endtimeId != null) {
+				&& priorityId != null && endtimeId != null
+				&& timeunitId != null && projectId != null) {
 			try {
 				barchart.generateChart(StaticParams.REPORT_IMAGE_WIDTH,
 						StaticParams.REPORT_IMAGE_HEIGHT,
-						Long.parseLong(timeId),Long.parseLong(endtimeId), Long.parseLong(unitId),
-						issuetypeId, priorityId);
+						Long.parseLong(timeId), Long.parseLong(endtimeId),
+						Long.parseLong(unitId), issuetypeId, priorityId,
+						timeunitId, projectId);
 				return Response.ok(
 						new String("No input validation errors found."))
 						.build();
@@ -125,15 +139,16 @@ public class MyRestResource {
 		} else {
 			return Response
 					.status(400)
-					.entity(getErrorCollection(new MyException("Field is null")))
-					.build();
+					.entity(getErrorCollection(new MyException(
+							"demogadget.exception.fieldnullerror"))).build();
 		}
 
 	}
 
 	private ErrorCollection getErrorCollection(MyException e) {
 		if (e.getExType() != null && e.getExType().equals("time")) {
-			return StaticParams.getDoubleErrorRep(e, log, "timeId", "endtimeId");
+			return StaticParams
+					.getDoubleErrorRep(e, log, "timeId", "endtimeId");
 		} else {
 			return StaticParams.getErrorRep(e, log, "unitId");
 		}
@@ -143,6 +158,16 @@ public class MyRestResource {
 	@Path("customfieldlist")
 	public Response getCustomFieldList() {
 		List<MyRestResourceModel> resList = new ArrayList<MyRestResourceModel>();
+
+		resList.add(new MyRestResourceModel(String
+				.valueOf(StaticParams.createdValue), i18n
+				.getText(StaticParams.createdName)));
+		resList.add(new MyRestResourceModel(String
+				.valueOf(StaticParams.updatedValue), i18n
+				.getText(StaticParams.updatedName)));
+		resList.add(new MyRestResourceModel(String
+				.valueOf(StaticParams.solvedValue), i18n
+				.getText(StaticParams.solvedName)));
 		for (CustomField cf : customFM.getCustomFieldObjects()) {
 			resList.add(new MyRestResourceModel(cf.getIdAsLong().toString(), cf
 					.getName()));
@@ -214,5 +239,20 @@ public class MyRestResource {
 
 		return Response.ok(groupList).build();
 
+	}
+
+	@GET
+	@Path("projectlist")
+	public Response getProjectList() {
+		List<MyRestResourceModel> resList = new ArrayList<MyRestResourceModel>();
+
+		resList.add(new MyRestResourceModel(String
+				.valueOf(StaticParams.allProject), i18n
+				.getText(StaticParams.allProjectName)));
+		for (Project ip : pm.getProjectObjects()) {
+			resList.add(new MyRestResourceModel(ip.getId().toString(), ip
+					.getName()));
+		}
+		return Response.ok(resList).build();
 	}
 }

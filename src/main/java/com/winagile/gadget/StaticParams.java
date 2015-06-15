@@ -8,6 +8,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.math.BigInteger;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,6 +18,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import org.apache.axis.encoding.Base64;
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
@@ -31,6 +34,8 @@ import org.jfree.data.category.CategoryDataset;
 
 import com.atlassian.jira.charts.Chart;
 import com.atlassian.jira.charts.jfreechart.ChartHelper;
+import com.atlassian.jira.issue.CustomFieldManager;
+import com.atlassian.jira.issue.Issue;
 import com.atlassian.jira.rest.api.util.ErrorCollection;
 import com.atlassian.jira.util.SimpleErrorCollection;
 import com.atlassian.sal.api.message.I18nResolver;
@@ -38,6 +43,8 @@ import com.atlassian.upm.api.license.PluginLicenseManager;
 import com.atlassian.upm.api.license.entity.PluginLicense;
 
 public class StaticParams {
+	private static final Logger log = LogManager.getLogger(BarChart.class);
+
 	final public static int REPORT_IMAGE_WIDTH = 600;
 	final public static int REPORT_IMAGE_HEIGHT = 600;
 
@@ -68,10 +75,64 @@ public class StaticParams {
 	final public static String critical = "Critical";
 	final public static String normal = "Normal";
 
+	final public static long createdValue = new BigInteger("creat".getBytes())
+			.longValue();
+	final public static String createdName = "gadget.winagle.config.createddate";
+	final public static long updatedValue = new BigInteger("updat".getBytes())
+			.longValue();
+	final public static String updatedName = "gadget.winagle.config.updateddate";
+
+	final public static long solvedValue = new BigInteger("resolv".getBytes())
+			.longValue();
+	final public static String solvedName = "gadget.winagle.config.solveddate";
+
+	final public static String totalTime = "totalTime";
+	final public static String totalNum = "totalNum";
+
+	final public static String hour = "hour";
+	final public static String second = "second";
+
+	final public static String allProject = "all";
+	final public static String allProjectName = "gadget.winagle.config.allproject";
+
 	public static String getPrintStack(Throwable e) {
 		StringWriter errors = new StringWriter();
 		e.printStackTrace(new PrintWriter(errors));
 		return errors.toString();
+	}
+
+	public static Double getDoubleValue(Object value, Long unit) {
+		if (value instanceof Timestamp) {
+			return new Double(((Timestamp) value).getTime() / unit);
+		} else {
+			return (Double) value;
+		}
+	}
+
+	public static void getTotalTime(Map<String, Double> timeMap, Issue issue,
+			Long Aid, Long Cid, CustomFieldManager customFM, String timeunitId) {
+		Object Avalue = Aid.equals(StaticParams.solvedValue) ? issue
+				.getResolutionDate()
+				: (Aid.equals(StaticParams.createdValue) ? issue.getCreated()
+						: (Aid.equals(StaticParams.updatedValue) ? issue
+								.getUpdated() : customFM.getCustomFieldObject(
+								Aid).getValue(issue)));
+		Object Cvalue = Cid.equals(StaticParams.solvedValue) ? issue
+				.getResolutionDate()
+				: (Cid.equals(StaticParams.createdValue) ? issue.getCreated()
+						: (Cid.equals(StaticParams.updatedValue) ? issue
+								.getUpdated() : customFM.getCustomFieldObject(
+								Cid).getValue(issue)));
+		Long unit = timeunitId.equals(StaticParams.hour) ? 3600000l : 1000l;
+		if (Avalue != null && Cvalue != null) {
+			timeMap.put(
+					StaticParams.totalTime,
+					timeMap.get(StaticParams.totalTime)
+							+ StaticParams.getDoubleValue(Cvalue, unit)
+							- StaticParams.getDoubleValue(Avalue, unit));
+			timeMap.put(StaticParams.totalNum,
+					timeMap.get(StaticParams.totalNum) + 1);
+		}
 	}
 
 	public static ErrorCollection getErrorRep(MyException e, Logger log,
@@ -120,24 +181,25 @@ public class StaticParams {
 
 	public static void checkLicenseStatus(PluginLicenseManager licenseManager,
 			I18nResolver i18n) throws MyException {
-		if (licenseManager == null || i18n == null) {
-			throw new MyException("License manager or i18n is null");
-		}
-		if (licenseManager.getLicense() == null
-				|| !licenseManager.getLicense().iterator().hasNext()) {
-			throw new MyException(
-					i18n.getText("demogadget.exception.licenseerror"));
-		}
-		for (PluginLicense pluginLicense : licenseManager.getLicense()) {
-			if (pluginLicense.getError().isDefined()) {
-				throw new MyException(
-						i18n.getText("demogadget.exception.licenseerror"));
-			}
-		}
+//		if (licenseManager == null || i18n == null) {
+//			throw new MyException("License manager or i18n is null");
+//		}
+//		if (licenseManager.getLicense() == null
+//				|| !licenseManager.getLicense().iterator().hasNext()) {
+//			throw new MyException(
+//					i18n.getText("demogadget.exception.licenseerror"));
+//		}
+//		for (PluginLicense pluginLicense : licenseManager.getLicense()) {
+//			if (pluginLicense.getError().isDefined()) {
+//				throw new MyException(
+//						i18n.getText("demogadget.exception.licenseerror"));
+//			}
+//		}
 	}
 
 	public static PieChart createPieChart(int width, int height,
-			JFreeChart jchart, CategoryDataset categoryDataset) {
+			JFreeChart jchart, CategoryDataset categoryDataset,
+			String charttitle) {
 		ChartHelper helper = new ChartHelper(jchart);
 		Map<String, Object> params = new HashMap<String, Object>();
 		try {
@@ -159,7 +221,7 @@ public class StaticParams {
 
 		Map<String, Object> chartParams = chart.getParameters();
 		String location = helper.getLocation();
-		String title = "Title";
+		String title = charttitle != null ? charttitle : "Title";
 		String filterUrl = "url";
 		int chartWidth = ((Integer) chartParams.get("width")).intValue();
 		int chartHeight = ((Integer) chartParams.get("height")).intValue();

@@ -37,6 +37,8 @@ public class OneSeriesUnitTimeRest {
 			@QueryParam("unitId") String unitId,
 			@QueryParam("timeId") String timeId,
 			@QueryParam("endtimeId") String endtimeId,
+			@QueryParam("timeunitId") String timeunitId,
+			@QueryParam("projectId") String projectId,
 			@QueryParam("issuetypeId") String issuetypeId) {
 
 		String Loginfo = "com.winagile.gadget.rest Generate: width:" + width
@@ -47,14 +49,16 @@ public class OneSeriesUnitTimeRest {
 
 		log.error(Loginfo);
 		if (width != null && height != null && unitId != null && timeId != null
-				&& issuetypeId != null && endtimeId != null) {
+				&& issuetypeId != null && endtimeId != null
+				&& timeunitId != null && projectId != null) {
 			try {
 				return Response.ok(
 						barchart.generateChart(Integer.parseInt(width),
 								Integer.parseInt(height),
 								Long.parseLong(timeId),
 								Long.parseLong(endtimeId),
-								Long.parseLong(unitId), issuetypeId)).build();
+								Long.parseLong(unitId), issuetypeId,
+								timeunitId, projectId)).build();
 			} catch (MyException e) {
 				return Response.status(400)
 						.entity(getErrorCollection(new MyException(e))).build();
@@ -63,8 +67,10 @@ public class OneSeriesUnitTimeRest {
 						.entity(getErrorCollection(new MyException(e))).build();
 			}
 		}
-		return Response.status(400)
-				.entity(getErrorCollection(new MyException())).build();
+		return Response
+				.status(400)
+				.entity(getErrorCollection(new MyException(
+						"demogadget.exception.fieldnullerror"))).build();
 
 	}
 
@@ -73,6 +79,8 @@ public class OneSeriesUnitTimeRest {
 	public Response validatePieChart(@QueryParam("unitId") String unitId,
 			@QueryParam("timeId") String timeId,
 			@QueryParam("endtimeId") String endtimeId,
+			@QueryParam("timeunitId") String timeunitId,
+			@QueryParam("projectId") String projectId,
 			@QueryParam("issuetypeId") String issuetypeId) {
 		String Loginfo = "com.winagile.gadget.rest Validate: unitId:" + unitId
 				+ ",timeId:" + timeId + ",issuetypeId:" + issuetypeId
@@ -81,12 +89,13 @@ public class OneSeriesUnitTimeRest {
 
 		log.error(Loginfo);
 		if (unitId != null && timeId != null && issuetypeId != null
-				&& endtimeId != null) {
+				&& endtimeId != null && timeunitId != null && projectId != null) {
 			try {
 				barchart.generateChart(StaticParams.REPORT_IMAGE_WIDTH,
 						StaticParams.REPORT_IMAGE_HEIGHT,
 						Long.parseLong(timeId), Long.parseLong(endtimeId),
-						Long.parseLong(unitId), issuetypeId);
+						Long.parseLong(unitId), issuetypeId, timeunitId,
+						projectId);
 				return Response.ok(
 						new String("No input validation errors found."))
 						.build();
@@ -100,15 +109,16 @@ public class OneSeriesUnitTimeRest {
 		} else {
 			return Response
 					.status(400)
-					.entity(getErrorCollection(new MyException("Field is null")))
-					.build();
+					.entity(getErrorCollection(new MyException(
+							"demogadget.exception.fieldnullerror"))).build();
 		}
 
 	}
 
 	private ErrorCollection getErrorCollection(MyException e) {
 		if (e.getExType() != null && e.getExType().equals("time")) {
-			return StaticParams.getDoubleErrorRep(e, log, "timeId", "endtimeId");
+			return StaticParams
+					.getDoubleErrorRep(e, log, "timeId", "endtimeId");
 		} else {
 			return StaticParams.getErrorRep(e, log, "unitId");
 		}
